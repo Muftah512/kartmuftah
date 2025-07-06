@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Transaction extends Model
+{
+    protected $fillable = [
+        'type',
+        'amount',
+        'pos_id',
+        'user_id',
+        'description'
+    ];
+
+    public function pointOfSale(): BelongsTo
+    {
+        return $this->belongsTo(PointOfSale::class, 'pos_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}

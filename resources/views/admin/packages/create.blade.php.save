@@ -1,0 +1,117 @@
+
+@section('content')
+<div class="container mx-auto p-6">
+    {{-- عنوان الصفحة --}}
+    <h1 class="text-2xl font-semibold mb-6">
+        @if(isset($package))
+            تعديل باقة: «{{ $package->name }}»
+        @else
+            إنشاء باقة جديدة
+        @endif
+    </h1>
+
+    {{-- عرض أخطاء التحقق --}}
+    @if($errors->any())
+        <div class="mb-6 bg-rm -rf * <ul 
+                class="list-disc list-inside mt-2"> 
+                @foreach($erro           <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    {{--	 الفورم --}}
+    <form	
+        action="{{ isset($package) ? route('admin.packages.update', $package->id) : route('admin.packages.store') }}"
+        method="POST"
+        class="space-y-4"
+    >	
+        @cs        
+        {{-- اسم الباقة --}}
+        <div>
+            <label for="name" class="block font-medium mb-1">اسم الباقة</label>
+            <input
+                type="text"
+                id="name"
+                name="name"
+                value="{{ old('name', $package->name ?? '') }}"
+                required
+                class="w-full border rounded px-3 py-2"
+            >
+        </div>
+
+        {{-- السعر --}}
+        <div>
+            <label for="price" class="block font-medium mb-1">السعر (ريال)</label>
+            <input
+                type="number"
+                id="price"
+                name="price"
+                value="{{ old('price', $package->price ?? '') }}"
+                step="0.01"
+                required
+                class="w-full border rounded px-3 py-2"
+            >
+        </div>
+
+        {{-- حجم التحميل --}}
+        <div>
+            <label for="size_mb" class="block font-medium mb-1">حجم التحميل (ميجابايت)</label>
+            <input
+                type="number"
+                id="size_mb"
+                name="size_mb"
+                value="{{ old('size_mb', $package->size_mb ?? '') }}"
+                required
+                class="w-full border rounded px-3 py-2"
+            >
+        </div>
+
+        {{-- الصلاحية --}}
+        <div>
+            <label for="validity_days" class="block font-medium mb-1">الصلاحية (أيام)</label>
+            <input
+                type="number"
+                id="validity_days"
+                name="validity_days"
+                value="{{ old('validity_days', $package->validity_days ?? '') }}"
+                required
+                class="w-full border rounded px-3 py-2"
+            >
+        </div>
+
+        {{-- ملف التعريف في MikroTik --}}
+        <div>
+            <label for="mikrotik_profile" class="block font-medium mb-1">ملف التعريف في MikroTik</label>
+            <input
+                type="text"
+                id="mikrotik_profile"
+                name="mikrotik_profile"
+                value="{{ old('mikrotik_profile', $package->mikrotik_profile ?? '') }}"
+                required
+                class="w-full border rounded px-3 py-2"
+            >
+        </div>
+
+        {{-- أزرار الإرسال والإلغاء --}}
+        <div class="pt-4 flex items-center">
+            <button
+                type="submit"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded px-5 py-2"
+            >
+                @if(isset($package))
+                    تحديث الباقة
+                @else
+                    حفظ الباقة
+                @endif
+            </button>
+            <a
+                href="{{ route('admin.packages.index') }}"
+                class="ml-4 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded px-4 py-2"
+            >
+                إلغاء
+            </a>
+        </div>
+    </form>
+</div>
+@endsection

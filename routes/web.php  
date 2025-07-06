@@ -1,0 +1,59 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ReportsController;
+use App\Http\Controllers\Admin\PosController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\ProfileController;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+require __DIR__.'/auth.php';
+
+use App\Http\Controllers\Auth\HomeController;
+Route::get('/home', HomeController::class)->middleware(['auth', 'active']);
+
+Route::middleware(['auth','role:admin'])
+     ->prefix('admin')
+     ->name('admin.')
+     ->group(function(){
+         // لوحة المدير
+         Route::get('/dashboard', [DashboardController::class,'dashboard'])
+              ->name('dashboard');
+         // قائمة نقاط البيع
+         Route::get('/pos', [PosController::class,'index'])
+              ->name('pos.index');
+	 
+         Route::get('users', [UserController::class,'index'])
+              ->name('users.index');
+
+         Route::get('reports/sales', [ReportsController::class, 'sales'])
+              ->name('reports.sales');
+         // يمكن لاحقًا إضافة create, store, edit, update, destroy…
+     });
+     
+
