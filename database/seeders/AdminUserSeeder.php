@@ -1,5 +1,5 @@
 <?php
- 
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -10,15 +10,20 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::firstOrCreate(
+        // نُنشئ المستخدم الإداري أو نستدعيه إذا كان موجودًا
+        $user = User::firstOrCreate(
             ['email' => 'admin@muftah.com'],
             [
-                'name' => 'المدير العام',
-                'password' => Hash::make('secret123'),  // غيّر كلمة المرور كما تريد
-                'is_active' => 1,
-                // حقل point_of_sale_id إن كان مطلوبًا:
-                'point_of_sale_id' => null,
+                'name'              => 'المدير العام',
+                'password'          => Hash::make('secret123'), // غيّر كلمة المرور كما تريد
+                'is_active'         => true,
+                'point_of_sale_id'  => null,                   // لا ينطبق على المدير العام
             ]
         );
+
+        // نتأكد من أنه فعليًا يحمل دور 'admin'
+        if (! $user->hasRole('admin')) {
+            $user->assignRole('admin');
+        }
     }
 }

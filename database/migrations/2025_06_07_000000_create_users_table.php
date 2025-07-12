@@ -6,23 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateUsersTable extends Migration
 {
-    public function up()
-    {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-                        $table->string('role')->nullable();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->string('phone')->unique()->nullable();
-            $table->unsignedBigInteger('point_of_sale_id')->nullable(); // ÓíÊã ÅÖÇÝÉ ÇáÚáÇÞÉ áÇÍÞÇð
-            $table->boolean('is_active')->default(true);
-            $table->timestamp('last_activity')->nullable(); // ÌÏíÏ ?
-            $table->rememberToken();
-            $table->timestamps();
-        });
-    }
+
+public function up()
+{
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+        $table->string('email')->unique();
+        $table->string('password');
+        // أعمدة التوثيق الثنائي
+        $table->text('two_factor_secret')->nullable();
+        $table->text('two_factor_recovery_codes')->nullable();
+        $table->timestamp('two_factor_confirmed_at')->nullable();
+        // عمود is_active لإدارة تفعيل المستخدمين
+        $table->boolean('is_active')->default(true);
+        $table->rememberToken();
+        $table->timestamps();
+    });
+}
 
     public function down()
     {

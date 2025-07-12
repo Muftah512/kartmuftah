@@ -3,28 +3,33 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\InternetCard;
-use App\Models\PointOfSale;
-use App\Models\Package;
-use App\Models\Transaction;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
+use PDF;
+use App\Models\PointOfSale;
+use App\Models\Transaction;
+use App\Models\InternetCard;
+use App\Models\Package;
+use App\Models\User;
 use App\Exports\SalesExport;
 use App\Exports\CardsExport;
 use App\Exports\FinancialExport;
-use PDF;
 
 class ReportsController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['auth', 'role:admin']);
+    }
+
     /**
      * عرض تقرير المبيعات
      */
     public function salesReport(Request $request)
     {
         $startDate    = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
-        $endDate      = $request->input('end_date',   now()->format('Y-m-d'));
+        $endDate      = $request->input('end_date', now()->format('Y-m-d'));
         $posId        = $request->input('pos_id');
         $pointsOfSale = PointOfSale::all();
 
@@ -56,7 +61,7 @@ class ReportsController extends Controller
     public function exportSalesReport(Request $request)
     {
         $startDate = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
-        $endDate   = $request->input('end_date',   now()->format('Y-m-d'));
+        $endDate   = $request->input('end_date', now()->format('Y-m-d'));
         $posId     = $request->input('pos_id');
 
         return Excel::download(
@@ -66,12 +71,12 @@ class ReportsController extends Controller
     }
 
     /**
-     * تصدير تقرير المبيعات لـ PDF
+     * عرض تقرير المبيعات بصيغة PDF
      */
     public function pdfSalesReport(Request $request)
     {
         $startDate    = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
-        $endDate      = $request->input('end_date',   now()->format('Y-m-d'));
+        $endDate      = $request->input('end_date', now()->format('Y-m-d'));
         $posId        = $request->input('pos_id');
         $pointsOfSale = PointOfSale::all();
 
@@ -102,12 +107,12 @@ class ReportsController extends Controller
     }
 
     /**
-     * عرض تقرير الكروت
+     * عرض تقرير بطاقات الإنترنت
      */
     public function cardsReport(Request $request)
     {
         $startDate    = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
-        $endDate      = $request->input('end_date',   now()->format('Y-m-d'));
+        $endDate      = $request->input('end_date', now()->format('Y-m-d'));
         $posId        = $request->input('pos_id');
         $packageId    = $request->input('package_id');
         $pointsOfSale = PointOfSale::all();
@@ -124,14 +129,19 @@ class ReportsController extends Controller
             ->paginate(25);
 
         // إحصائيات سريعة
-        $todayCards   = InternetCard::whereDate('created_at', Carbon::today())->count();
-        $totalPeriod  = InternetCard::whereBetween('created_at', [
-                            Carbon::parse($startDate)->startOfDay(),
-                            Carbon::parse($endDate)->endOfDay(),
-                        ])->count();
-        $daysDiff     = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) ?: 1;
-        $activeCards  = $totalPeriod;   // كل البطاقات المنشأة ضمن الفترة نعتبرها “نشطة”
-        $usedCards    = 0;              // لا يوجد حقل used_at
+        $todayCards  = InternetCard::whereDate('created_at', Carbon::today())->count();
+        $totalPeriod = InternetCard::whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
+            ])->count();
+        $daysDiff    = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) ?: 1;
+
+        $activeCards  = $totalPeriod;
+        $usedCards    = InternetCard::whereNotNull('used_at')
+            ->whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
+            ])->count();
         $averageDaily = round($totalPeriod / $daysDiff, 2);
 
         return view('admin.reports.cards', compact(
@@ -150,12 +160,12 @@ class ReportsController extends Controller
     }
 
     /**
-     * تصدير تقرير الكروت لـ Excel
+     * تصدير تقرير بطاقات الإنترنت لـ Excel
      */
     public function exportCardsReport(Request $request)
     {
         $startDate = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
-        $endDate   = $request->input('end_date',   now()->format('Y-m-d'));
+        $endDate   = $request->input('end_date', now()->format('Y-m-d'));
         $posId     = $request->input('pos_id');
         $packageId = $request->input('package_id');
 
@@ -171,38 +181,41 @@ class ReportsController extends Controller
     public function financialReport(Request $request)
     {
         $startDate = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
-        $endDate   = $request->input('end_date',   now()->format('Y-m-d'));
+        $endDate   = $request->input('end_date', now()->format('Y-m-d'));
 
-        $income   = Transaction::where('type','credit')
+        $income = Transaction::where('type', 'credit')
             ->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(),
                 Carbon::parse($endDate)->endOfDay(),
             ])->sum('amount');
 
-        $expenses = Transaction::where('type','debit')
+        $expenses = Transaction::where('type', 'debit')
             ->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(),
                 Carbon::parse($endDate)->endOfDay(),
             ])->sum('amount');
 
-        $netProfit    = $income - $expenses;
-        $topPos       = PointOfSale::withSum(['transactions' => fn($q) => $q
-                            ->where('type','debit')
-                            ->whereBetween('created_at', [
-                                Carbon::parse($startDate)->startOfDay(),
-                                Carbon::parse($endDate)->endOfDay(),
-                            ])
-                        ], 'amount')
-                        ->orderByDesc('transactions_sum_amount')
-                        ->take(5)->get();
-        $packageSales = Package::withSum(['cards' => fn($q) => $q
-                            ->whereBetween('created_at', [
-                                Carbon::parse($startDate)->startOfDay(),
-                                Carbon::parse($endDate)->endOfDay(),
-                            ])
-                        ], 'price')
-                        ->orderByDesc('cards_sum_price')
-                        ->pluck('cards_sum_price','name');
+        $netProfit = $income - $expenses;
+
+        $topPos = PointOfSale::withSum(['transactions' => fn($q) =>
+                $q->where('type', 'debit')
+                  ->whereBetween('created_at', [
+                      Carbon::parse($startDate)->startOfDay(),
+                      Carbon::parse($endDate)->endOfDay(),
+                  ])
+            ], 'amount')
+            ->orderByDesc('transactions_sum_amount')
+            ->take(5)
+            ->get();
+
+        $packageSales = Package::withSum(['cards' => fn($q) =>
+                $q->whereBetween('created_at', [
+                    Carbon::parse($startDate)->startOfDay(),
+                    Carbon::parse($endDate)->endOfDay(),
+                ])
+            ], 'price')
+            ->orderByDesc('cards_sum_price')
+            ->pluck('cards_sum_price', 'name');
 
         return view('admin.reports.financial', compact(
             'income',
@@ -221,7 +234,7 @@ class ReportsController extends Controller
     public function exportFinancialReport(Request $request)
     {
         $startDate = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
-        $endDate   = $request->input('end_date',   now()->format('Y-m-d'));
+        $endDate   = $request->input('end_date', now()->format('Y-m-d'));
 
         return Excel::download(
             new FinancialExport($startDate, $endDate),
@@ -237,10 +250,10 @@ class ReportsController extends Controller
         $role   = $request->input('role');
         $status = $request->input('status');
 
-        $users = User::with('pointOfSale','roles')
-            ->when($role,   fn($q) => $q->role($role))
-            ->when($status, fn($q) => $q->where('is_active',$status==='active'))
-            ->orderBy('created_at','desc')
+        $users = User::with('pointOfSale', 'roles')
+            ->when($role, fn($q) => $q->role($role))
+            ->when($status, fn($q) => $q->where('is_active', $status === 'active'))
+            ->orderBy('created_at', 'desc')
             ->paginate(25);
 
         $rolesList = [
@@ -249,10 +262,15 @@ class ReportsController extends Controller
             'accountant' => 'المحاسب',
             'pos'        => 'نقطة البيع',
         ];
-        $statuses = ['active'=>'نشط','inactive'=>'غير نشط'];
+
+        $statuses = ['active' => 'نشط', 'inactive' => 'غير نشط'];
 
         return view('admin.reports.users', compact(
-            'users','role','status','rolesList','statuses'
+            'users',
+            'role',
+            'status',
+            'rolesList',
+            'statuses'
         ));
     }
 }

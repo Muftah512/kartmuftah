@@ -2,33 +2,65 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
+use App\Models\User;
+use App\Models\PointOfSale;
 use Illuminate\Support\Facades\Hash;
 
 class UsersTableSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // إنشاء مدير النظام
-        User::create([
-            'name' => 'المدير العام',
-            'email' => 'admin@cardmuftah.com',
-            'password' => Hash::make('admin_password'),
-            'role' => 'admin',
-            'is_active' => true,
-        ]);
+        // إذا لم يكن هناك نقط بيع اصلاً، ننشئ واحدة افتراضياً
+        $defaultPos = PointOfSale::first() ?: PointOfSale::factory()->create();
 
-        // إنشاء محاسب
-        User::create([
-            'name' => 'محاسب النظام',
-            'email' => 'accountant@cardmuftah.com',
-            'password' => Hash::make('accountant_password'),
-            'role' => 'accountant',
-            'is_active' => true,
-        ]);
+        $users = [
+            [
+                'name'              => 'Admin User',
+                'email'             => 'admin@cardmuftah.com',
+                'password'          => 'password',
+                'is_active'         => true,
+                'role'              => 'admin',
+                'point_of_sale_id'  => null,
+            ],
+            [
+                'name'              => 'Accountant User',
+                'email'             => 'accountant@cardmuftah.com',
+                'password'          => 'password',
+                'is_active'         => true,
+                'role'              => 'accountant',
+                'point_of_sale_id'  => null,
+            ],
+            [
+                'name'              => 'POS User',
+                'email'             => 'pos@cardmuftah.com',
+                'password'          => 'password',
+                'is_active'         => true,
+                'role'              => 'pos',
+                // إذا كانت النقطة 1 غير موجودة نستخدم $defaultPos
+                'point_of_sale_id'  => PointOfSale::find(1)?->id ?? $defaultPos->id,
+            ],
+        ];
 
-        // إنشاء 10 مستخدمين عشوائيين
-        User::factory(10)->create();
+        foreach ($users as $data) {
+            // نحتفظ بالدور ثم نحذفه من المصفوفة
+            $role = $data['role'];
+            unset($data['role']);
+
+            // نبني بيانات الحقل password مُشفرة
+            $data['password'] = Hash::make($data['password']);
+
+            // ننشئ أو نعيد نموذج المستخدم بناءً على الـ email
+            $user = User::firstOrNew(['email' => $data['email']]);
+            $user->fill([
+                'name'             => $data['name'],
+                'password'         => $data['password'],
+                'is_active'        => $data['is_active'],
+                'point_of_sale_id' => $data['point_of_sale_id'],
+            ])->save();
+
+            // نسنّد الدور (سيمسح أي أدوار سابقة ويضع هذا فقط)
+            $user->syncRoles([$role]);
+        }
     }
 }

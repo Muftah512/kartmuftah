@@ -32,27 +32,27 @@ class RechargeController extends Controller
         
         $pos = PointOfSale::findOrFail($validated['pos_id']);
         
-        // ÒíÇÏÉ ÇáÑÕíÏ
+        // زيادة الرصيد
         $pos->balance += $validated['amount'];
         $pos->save();
         
-        // ÅäÔÇÁ ÇáÝÇÊæÑÉ
+        // إنشاء الفاتورة
         $invoice = $pos->invoices()->create([
             'amount' => $validated['amount'],
-            'description' => 'ÔÍä ÑÕíÏ',
+            'description' => 'شحن رصيد',
             'status' => 'paid'
         ]);
         
-        // ÊÓÌíá ÇáãÚÇãáÉ
+        // تسجيل المعاملة
         Transaction::create([
             'point_of_sale_id' => $pos->id,
             'type' => 'credit',
             'amount' => $validated['amount'],
-            'description' => 'ÔÍä ÑÕíÏ ÈæÇÓØÉ ÇáãÍÇÓÈ',
+            'description' => 'شحن رصيد بواسطة المحاسب',
             'balance_after' => $pos->balance,
             'invoice_id' => $invoice->id
         ]);
 
-        return redirect()->route('accountant.recharges.index')->with('success', 'Êã ÔÍä ÇáÑÕíÏ ÈäÌÇÍ');
+        return redirect()->route('accountant.recharges.index')->with('success', 'تم شحن الرصيد بنجاح');
     }
 }

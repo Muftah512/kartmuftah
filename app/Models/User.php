@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,9 +21,9 @@ class User extends Authenticatable
     use TwoFactorAuthenticatable;
 
     /**
-     * The attributes that are mass assignable.
+     * الحقول القابلة للإنشاء الشامل.
      *
-     * @var array<int, string>
+     * @var string[]
      */
     protected $fillable = [
         'name',
@@ -34,9 +34,9 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * الحقول التي يجب إخفاؤها عند التسلسل.
      *
-     * @var array<int, string>
+     * @var string[]
      */
     protected $hidden = [
         'password',
@@ -44,23 +44,49 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
+     * التحويلات (casts) للحقول.
      *
-     * @var array<string, string>
+     * @var array<string,string>
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_active'         => 'boolean',
     ];
 
     /**
-     * The accessors to append to the model's array form.
+     * القيم الافتراضية للسمات.
      *
-     * @var array<int, string>
+     * @var array<string,mixed>
+     */
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
+    /**
+     * السمات التي يضاف لها accessor تلقائياً.
+     *
+     * @var string[]
      */
     protected $appends = [
         'profile_photo_url',
     ];
-    protected $attributes = [
-        'is_active' => true,
-    ];
+
+    /**
+     * علاقة المستخدم بنقطة البيع (POS).
+     */
+    public function pointOfSale()
+    {
+        return $this->belongsTo(PointOfSale::class);
+
+    return $this->hasMany(PointOfSale::class, 'accountant_id');
+      }
+public function recharges()
+{
+    return $this->hasMany(Recharge::class, 'accountant_id');
+}
+
+public function invoices()
+{
+    return $this->hasMany(Invoice::class, 'accountant_id');
+ }
 }

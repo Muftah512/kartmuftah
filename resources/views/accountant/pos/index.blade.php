@@ -35,11 +35,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($pointsOfSale as $pos)
+                    @foreach($points as $pos)
                     <tr>
                         <td>{{ $pos->name }}</td>
                         <td>{{ $pos->location ?? '--' }}</td>
-                        <td>{{ number_format($pos->balance, 2) }} ر.س</td>
+                        <td>{{ number_format($pos->balance, 2) }} ر.ي</td>
                         <td>
                             <span class="badge {{ $pos->is_active ? 'bg-success' : 'bg-danger' }}">
                                 {{ $pos->is_active ? 'نشط' : 'غير نشط' }}

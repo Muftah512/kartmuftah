@@ -11,16 +11,22 @@ class TransactionsTableSeeder extends Seeder
 {
     public function run()
     {
+        // جلب جميع نقاط البيع
         $pointsOfSale = PointOfSale::all();
-        $users = User::where('role', 'pos')->get();
 
-        // إذا لم تكن هناك نقاط بيع أو مستخدمين، أنشئ بعضها أولاً
+        // جلب جميع مستخدمي POS عبر الصلاحيات
+        $users = User::role('pos')->get();
+
+        // إذا لم تكن هناك نقاط بيع، أنشئ 5 نقاط بيع افتراضية
         if ($pointsOfSale->isEmpty()) {
             $pointsOfSale = PointOfSale::factory(5)->create();
         }
         
+        // إذا لم يكن هناك مستخدمي POS، أنشئ 5 وعيّن لهم دور pos
         if ($users->isEmpty()) {
-            $users = User::factory(5)->create(['role' => 'pos']);
+            $users = User::factory(5)->create()->each(function ($user) {
+                $user->assignRole('pos');
+            });
         }
 
         // إنشاء معاملات لكل نقطة بيع
@@ -28,20 +34,20 @@ class TransactionsTableSeeder extends Seeder
             // معاملات خصم (بيع كروت)
             for ($i = 0; $i < 5; $i++) {
                 Transaction::create([
-                    'type' => 'debit',
-                    'amount' => rand(20, 100),
-                    'pos_id' => $pos->id,
-                    'user_id' => $users->random()->id,
+                    'type'        => 'debit',
+                    'amount'      => rand(20, 100),
+                    'pos_id'      => $pos->id,
+                    'user_id'     => $users->random()->id,
                     'description' => 'بيع كرت إنترنت رقم ' . ($i + 1),
                 ]);
             }
             
-            // معاملات شحن (شحن رصيد)
+            // معاملة شحن (شحن رصيد)
             Transaction::create([
-                'type' => 'credit',
-                'amount' => rand(500, 2000),
-                'pos_id' => $pos->id,
-                'user_id' => $users->random()->id,
+                'type'        => 'credit',
+                'amount'      => rand(500, 2000),
+                'pos_id'      => $pos->id,
+                'user_id'     => $users->random()->id,
                 'description' => 'شحن رصيد نقطة البيع',
             ]);
         }

@@ -12,16 +12,13 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    /**
-     * Apply auth and admin role middleware.
-     */
     public function __construct()
     {
         $this->middleware(['auth', 'role:admin']);
     }
 
     /**
-     * Display a listing of users with summary stats.
+     * عرض قائمة المستخدمين وإحصائيات سريعة
      */
     public function index()
     {
@@ -31,7 +28,7 @@ class UserController extends Controller
         $accountantUsers = User::role('accountant')->count();
         $posUsers        = User::role('pos')->count();
 
-        $users = User::paginate(15);
+        $users = User::with('pointOfSale')->paginate(15);
         $roles = Role::pluck('name');
 
         return view('admin.users.index', compact(
@@ -46,43 +43,46 @@ class UserController extends Controller
     }
 
     /**
-     * Show the form for creating a new user.
+     * نموذج إنشاء مستخدم جديد
      */
     public function create()
     {
-        $roles         = ['admin', 'accountant', 'pos'];
-        $pointsOfSale  = PointOfSale::all();
+        $roles        = ['admin', 'accountant', 'pos'];
+        $pointsOfSale = PointOfSale::all();
 
         return view('admin.users.create', compact('roles', 'pointsOfSale'));
     }
 
     /**
-     * Store a newly created user in storage.
+     * حفظ مستخدم جديد
      */
 public function store(StoreUserRequest $request)
 {
-    // تجميع البيانات المسموح بها
-    $data = $request->validated();
+    // 1. اجلب البيانات المسموح بها
+    $validated = $request->validated();
 
-    dd($data['role'], $data);
+    // 2. احفظ قيمة الدور ثم ازلها من المصفوفة كي لا تحاول لارافيل تعبئتها في العمود
+    $role = $validated['role'];
+    unset($validated['role']);
 
-    // تشفير كلمة المرور
-    $data['password']  = Hash::make($data['password']);
-    $data['is_active'] = true;   // أو احذف هذا السطر إذا وضعت الافتراضي في الموديل
+    // 3. شفر كلمة المرور وضع حالة التفعيل
+    $validated['password']  = Hash::make($validated['password']);
+    $validated['is_active'] = true;
 
-    // إنشاء المستخدم
-    $user = User::create($data);
+    // 4. أنشئ المستخدم
+    $user = User::create($validated);
 
-    // تعيين الدور
-    $user->assignRole($data['role']);
+    // 5. عيّن الدور باستخدام Spatie
+    $user->assignRole($role);
 
+    // 6. أعد التوجيه
     return redirect()
         ->route('admin.users.index')
         ->with('success', 'تم إنشاء المستخدم بنجاح');
 }
 
     /**
-     * Show the form for editing the specified user.
+     * نموذج تعديل مستخدم
      */
     public function edit(User $user)
     {
@@ -93,58 +93,61 @@ public function store(StoreUserRequest $request)
     }
 
     /**
-     * Update the specified user in storage.
+     * تحديث بيانات المستخدم
      */
     public function update(UpdateUserRequest $request, User $user)
     {
-        $validated = $request->validated();
+        $data = $request->validated();
 
-        $data = [
-            'name'             => $validated['name'],
-            'email'            => $validated['email'],
-            'phone'            => $validated['phone'],
-            'point_of_sale_id' => $validated['point_of_sale_id'] ?? null,
-        ];
+        // تحديث الحقول العامة
+        $user->name             = $data['name'];
+        $user->email            = $data['email'];
+        $user->point_of_sale_id = $data['point_of_sale_id'] ?? null;
+        $user->is_active        = $data['is_active'] ?? $user->is_active;
 
-        if (!empty($validated['password'])) {
-            $data['password'] = Hash::make($validated['password']);
+        // إذا تم تمرير كلمة مرور جديدة، فنحن نشفرها
+        if (! empty($data['password'])) {
+            $user->password = Hash::make($data['password']);
         }
 
-        $user->update($data);
+        $user->save();
 
-        if (!$user->hasRole($validated['role'])) {
-            $user->syncRoles([$validated['role']]);
+        // تحديث الدور إذا تغيّر
+        if (! $user->hasRole($data['role'])) {
+            $user->syncRoles([$data['role']]);
         }
 
-        return redirect()->route('admin.users.index')
-                         ->with('success', 'تم تعديل المستخدم بنجاح');
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'تم تعديل بيانات المستخدم بنجاح');
     }
 
     /**
-     * Remove the specified user from storage.
+     * حذف المستخدم
      */
     public function destroy(User $user)
     {
         if ($user->hasRole('admin')) {
-            abort(403, 'لا يمكنك حذف مستخدم برتبة مدراء النظام.');
+            abort(403, 'لا يمكنك حذف مستخدم برتبة "admin".');
         }
 
         $user->delete();
 
-        return redirect()->route('admin.users.index')
-                         ->with('success', 'تم حذف المستخدم بنجاح');
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'تم حذف المستخدم بنجاح');
     }
 
     /**
-     * Toggle the active status of the specified user.
+     * تبديل حالة التفعيل (نشط / معطل)
      */
     public function toggleStatus(User $user)
     {
         if ($user->hasRole('admin')) {
-            abort(403, 'لا يمكنك تغيير حالة مستخدم برتبة مدراء النظام.');
+            abort(403, 'لا يمكنك تغيير حالة مستخدم برتبة "admin".');
         }
 
-        $user->is_active = !$user->is_active;
+        $user->is_active = ! $user->is_active;
         $user->save();
 
         $message = $user->is_active

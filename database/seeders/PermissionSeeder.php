@@ -9,10 +9,11 @@ class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
+        // قائمة الصلاحيات الأساسية في النظام
         $permissions = [
-            'view_dashboard',
-            'manage_admins',
-            // ÃÖÝ åäÇ ÈÇÞí ÇáÕáÇÍíÇÊ ÇáÊí íÍÊÇÌåÇ ÊØÈíÞß
+            'create cards',    // إنشاء بطاقات الإنترنت في نقطة البيع
+            'view reports',    // مشاهدة التقارير المالية والبيعية
+            'manage users',    // إدارة المستخدمين (إنشاء وتعديل وحذف)
         ];
 
         foreach ($permissions as $perm) {

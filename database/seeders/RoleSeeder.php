@@ -9,42 +9,36 @@ use Spatie\Permission\Models\Permission;
 class RoleSeeder extends Seeder
 {
     public function run(): void
-    {
-        // ÇÞÑÃ ãÕÝæÝÉ ÇáÃÏæÇÑ æÇáÕáÇÍíÇÊ ãä config/permissions.php
-        $map = config('permissions', [
+{
+        // خريطة الأدوار والصلاحيات
+        $map = [
             'admin'      => ['create cards', 'view reports', 'manage users'],
-            'supervisor' => ['create cards', 'view reports'],
             'accountant' => ['view reports'],
-            'vendor'     => ['create cards'],
-        ]);
+            'pos'        => ['create cards'],
+        ];
 
         foreach ($map as $roleName => $perms) {
-            // ÃäÔÆ ÇáÏæÑ ÅÐÇ áã íßä ãæÌæÏÇð
-            $role = Role::firstOrCreate(
-                ['name' => $roleName],
-                ['guard_name' => 'web']
-            );
+Permission::firstOrCreate(['name' => 'pos.create']);
+Permission::firstOrCreate(['name' => 'pos.topup']);
+Permission::firstOrCreate(['name' => 'pos.view-own']);
+Permission::firstOrCreate(['name' => 'report.view-own']);
 
-            // ÊÃßÏ Ãä ÇáÕáÇÍíÇÊ Ýí ãÕÝæÝÉ ãÓØøÍÉ
-            if (! is_array($perms)) {
-                // ÅÐÇ æÌÏäÇ ÈÏá ãÕÝæÝÉ ÞíãÉ æÇÍÏÉ¡ ÛíøÑåÇ Åáì ãÕÝæÝÉ
-                $perms = [$perms];
-            }
+// ربط الأذونات بدور المحاسب
+$accountant = Role::firstOrCreate(['name' => 'accountant']);
+$accountant->syncPermissions([
+'pos.create',
+'pos.topup',
+'pos.view-own',
+'report.view-own',
+]);
+            // إنشاء الدور إذا لم يكن موجودًا
+            $role = Role::firstOrCreate([
+                'name'       => $roleName,
+                'guard_name' => 'web'
+            ]);
 
-            // ÃäÔÆ ßá ÕáÇÍíøÉ Ëã ÇÌãÚåÇ Ýí ÞÇÆãÉ äÕíÉ
-            $permNames = [];
-            foreach ($perms as $perm) {
-                if (is_string($perm)) {
-                    Permission::firstOrCreate(
-                        ['name' => $perm],
-                        ['guard_name' => 'web']
-                    );
-                    $permNames[] = $perm;
-                }
-            }
-
-            // ãÒÇãäøÉ ÇáÕáÇÍíÇÊ ãÚ ÇáÏæÑ ÈäÕæÕ ÇáÃÓãÇÁ
-            $role->syncPermissions($permNames);
+            // مزامنة الصلاحيات
+            $role->syncPermissions($perms);
         }
     }
 }

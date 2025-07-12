@@ -25,7 +25,7 @@ class InvoiceController extends Controller
     
     public function download(Invoice $invoice)
     {
-        // ÊæáíÏ ãáÝ PDF ááÝÇÊæÑÉ
+        // توليد ملف PDF للفاتورة
         return $this->pdfService->generateInvoice($invoice);
     }
 }

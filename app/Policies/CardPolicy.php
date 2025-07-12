@@ -1,14 +1,60 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\User;
+use App\Models\InternetCard;
+use Illuminate\Auth\Access\HandlesAuthorization;
+
 class CardPolicy
 {
-    public function view(User $user, Card $card)
+    use HandlesAuthorization;
+
+    /**
+     * Determine whether the user can view any Internet cards.
+     */
+    public function viewAny(User $user): bool
     {
-        if ($user->hasRole('ÇáãÏíÑ ÇáÚÇã')) return true;
-        return $user->pointOfSale?->id === $card->pos_id;
+        return $user->hasRole('admin') \
+            || $user->hasRole('accountant') \
+            || $user->hasRole('pos');
     }
 
-    public function recharge(User $user, Card $card)
+    /**
+     * Determine whether the user can view the Internet card.
+     */
+    public function view(User $user, InternetCard $card): bool
     {
-        return $user->can('recharge_existing_card') && 
-               $user->pointOfSale?->id === $card->pos_id;
+        if ($user->hasRole('admin') || $user->hasRole('accountant')) {
+            return true;
+        }
+        if ($user->hasRole('pos')) {
+            return $card->pos_id === $user->point_of_sale_id;
+        }
+        return false;
+    }
+
+    /**
+     * Determine whether the user can create Internet cards.
+     */
+    public function create(User $user): bool
+    {
+        return $user->hasRole('pos');
+    }
+
+    /**
+     * Determine whether the user can update the Internet card.
+     */
+    public function update(User $user, InternetCard $card): bool
+    {
+        return $user->hasRole('admin');
+    }
+
+    /**
+     * Determine whether the user can delete the Internet card.
+     */
+    public function delete(User $user, InternetCard $card): bool
+    {
+        return $user->hasRole('admin');
     }
 }

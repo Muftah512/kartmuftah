@@ -23,6 +23,8 @@ class AuthServiceProvider extends ServiceProvider
         // سجّل الـ Policies أولاً
         $this->registerPolicies();
 
+                Gate::define('manage_pos', fn($user) => $user->hasRole('admin'));
+
         //––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
         // بوّابات الوصول (Gates) لإدارة نقاط البيع
         Gate::define('view-any-pos', function ($user) {

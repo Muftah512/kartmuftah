@@ -13,11 +13,6 @@ use App\Http\Controllers\Accountant\RechargeController as AccountantRechargeCont
 use App\Http\Controllers\Pos\DashboardController as PosDashboard;
 use App\Http\Controllers\Pos\CardController as PosCardController;
 use App\Http\Controllers\Pos\SaleController as PosSaleController;
-use App\Http\Controllers\Accountant\PosReportController;
-use App\Http\Controllers\Accountant\TransactionsReportController;
-use App\Http\Controllers\Accountant\{
-    PointOfSaleController,
-    };
 
 /*
 |--------------------------------------------------------------------------
@@ -99,7 +94,7 @@ Route::prefix('accountant')
     ->middleware(['auth','role:accountant','ensure.active'])
     ->group(function(){
         Route::get('dashboard', [AccountantDashboard::class,'index'])->name('dashboard');
-        //Route::resource('pos', PointOfSaleController::class);
+        Route::resource('pos', PointOfSaleController::class);
         Route::resource('invoices',  AccountantInvoiceController::class);
         Route::resource('recharges', AccountantRechargeController::class);
          Route::get('pos', [PointOfSaleController::class, 'index'])
@@ -108,10 +103,6 @@ Route::prefix('accountant')
          // إذا تريد صفحة الإنشاء:
          Route::get('pos/create', [PointOfSaleController::class, 'create'])
               ->name('pos.create');
-Route::get('reports/pos', [PosReportController::class, 'index'])
-     ->name('reports.pos');
-    Route::get('reports/transactions', [TransactionsReportController::class, 'index'])
-         ->name('reports.transactions');
 
          // وتخزين النقطة:
          Route::post('pos', [PointOfSaleController::class, 'store'])

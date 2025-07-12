@@ -4,7 +4,7 @@ namespace App\Http\Requests\Accountant;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class RechargeRequest extends FormRequest
+class InvoiceRequest extends FormRequest
 {
     public function authorize()
     {
@@ -16,8 +16,8 @@ class RechargeRequest extends FormRequest
         return [
             'point_of_sale_id' => 'required|exists:point_of_sales,id',
             'amount' => 'required|numeric|min:1',
-            'payment_method' => 'required|in:cash,bank_transfer,card',
-            'notes' => 'nullable|string',
+            'description' => 'required|string',
+            'due_date' => 'required|date',
         ];
     }
 
@@ -26,7 +26,8 @@ class RechargeRequest extends FormRequest
         return [
             'point_of_sale_id.required' => 'نقطة البيع مطلوبة',
             'amount.required' => 'المبلغ مطلوب',
-            'payment_method.required' => 'طريقة الدفع مطلوبة',
+            'description.required' => 'وصف الفاتورة مطلوب',
+            'due_date.required' => 'تاريخ الاستحقاق مطلوب',
         ];
     }
 }

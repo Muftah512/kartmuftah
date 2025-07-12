@@ -6,12 +6,12 @@
         <h1 class="text-2xl font-bold text-gray-800">تقرير المبيعات</h1>
         
         <div class="flex flex-wrap gap-3 mt-4 md:mt-0">
-            <a href="{{ route('admin.reports.export.sales') }}">تصدير إلى إكسل</a> 
+            <a href="{{ route('admin.reports.export.sales') }}"
                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
                 <i class="fas fa-file-excel mr-2"></i> تصدير Excel
             </a>
             
-            <a href="{{ route('admin.reports.pdf.sales', request()->query()) }}" 
+            <a href="{{ route('admin.reports.export.pdf.sales') }}"
                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center">
                 <i class="fas fa-file-pdf mr-2"></i> تصدير PDF
             </a>
@@ -31,28 +31,32 @@
                     <label class="block text-gray-700 mb-2">نقطة البيع</label>
                     <select name="pos_id" class="w-full px-4 py-2 border rounded-lg">
                         <option value="">جميع النقاط</option>
-                        @foreach($points as $point)
-                        <option value="{{ $point->id }}" {{ $posId == $point->id ? 'selected' : '' }}>
-                            {{ $point->name }} - {{ $point->location }}
-                        </option>
+                        @foreach($pointsOfSale as $point)
+                            <option value="{{ $point->id }}"
+                                {{ (request('pos_id') == $point->id) ? 'selected' : '' }}>
+                                {{ $point->name }} – {{ $point->location }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
                 
                 <div>
                     <label class="block text-gray-700 mb-2">من تاريخ</label>
-                    <input type="date" name="start_date" class="w-full px-4 py-2 border rounded-lg" 
-                           value="{{ $startDate }}">
+                    <input type="date" name="start_date" 
+                           class="w-full px-4 py-2 border rounded-lg" 
+                           value="{{ request('start_date') }}">
                 </div>
                 
                 <div>
                     <label class="block text-gray-700 mb-2">إلى تاريخ</label>
-                    <input type="date" name="end_date" class="w-full px-4 py-2 border rounded-lg" 
-                           value="{{ $endDate }}">
+                    <input type="date" name="end_date" 
+                           class="w-full px-4 py-2 border rounded-lg" 
+                           value="{{ request('end_date') }}">
                 </div>
                 
                 <div class="flex items-end">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg h-[42px] w-full">
+                    <button type="submit" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg h-[42px] w-full">
                         <i class="fas fa-filter mr-2"></i> تطبيق الفلتر
                     </button>
                 </div>
@@ -73,7 +77,9 @@
             </div>
             <div>
                 <p class="text-lg">متوسط المبيعات اليومية</p>
-                <p class="text-3xl font-bold">{{ number_format($totalAmount / max(1, $transactions->count())) }} ريال</p>
+                <p class="text-3xl font-bold">
+                    {{ number_format($totalAmount / max(1, $transactions->count())) }} ريال
+                </p>
             </div>
         </div>
     </div>
@@ -92,22 +98,28 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @foreach($transactions as $transaction)
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $transaction->id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">{{ $transaction->pointOfSale->name }}</div>
-                        <div class="text-sm text-gray-500">{{ $transaction->pointOfSale->location }}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
-                        {{ number_format($transaction->amount) }} ريال
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {{ $transaction->description }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {{ $transaction->created_at->format('d/m/Y H:i') }}
-                    </td>
-                </tr>
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $transaction->id }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ $transaction->pointOfSale->name }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                {{ $transaction->pointOfSale->location }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
+                            {{ number_format($transaction->amount) }} ريال
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $transaction->description }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ $transaction->created_at->format('d/m/Y H:i') }}
+                        </td>
+                    </tr>
                 @endforeach
             </tbody>
         </table>

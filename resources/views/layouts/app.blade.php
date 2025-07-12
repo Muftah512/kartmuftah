@@ -34,7 +34,22 @@
 
             <!-- Page Content -->
             <main>
-                {{ $slot }}
+                </head>
+    <body class="font-sans antialiased bg-gray-50">
+
+        {{-- هنا لو تريد banner ممكن تضمّنه مباشرة أو تحذفه --}}
+        {{-- <x-banner /> --}}
+
+        {{-- شريط التنقل والعناصر الثابتة … --}}
+
+        <main class="flex-1 p-6">
+            {{-- هذي تستخدم مع @extends + @section --}}
+            @yield('content')
+        </main>
+
+        {{-- لو عندك footer أو scripts --}}
+    </body>
+</html>
             </main>
         </div>
 

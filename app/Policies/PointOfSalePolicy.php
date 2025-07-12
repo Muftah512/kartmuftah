@@ -12,22 +12,26 @@ class PointOfSalePolicy
 
     public function viewAny(User $user)
     {
-        return $user->hasRole('ÇáãÏíÑ ÇáÚÇã') || 
-               $user->hasRole('ÇáãÔÑÝ') || 
-               $user->hasRole('ÇáãÍÇÓÈ');
+        return $user->hasRole('admin') || 
+               $user->hasRole('supervisor') || 
+               $user->hasRole('accountant');
     }
 
     public function view(User $user, PointOfSale $pos)
     {
-        if ($user->hasRole('ÇáãÏíÑ ÇáÚÇã')) {
+
+    return $user->id === $pointOfSale->accountant_id;
+
+        if ($user->hasRole('admin')) {
             return true;
         }
 
-        if ($user->hasRole('ÇáãÔÑÝ')) {
+        if ($user->hasRole('supervisor')) {
+            // تحقق إذا كان المشرف مسؤول عن نقطة البيع هذه
             return $user->supervisedPoints->contains($pos->id);
         }
 
-        if ($user->hasRole('ÇáãÍÇÓÈ')) {
+        if ($user->hasRole('accountant')) {
             return true;
         }
 
@@ -36,16 +40,17 @@ class PointOfSalePolicy
 
     public function create(User $user)
     {
-        return $user->hasRole('ÇáãÏíÑ ÇáÚÇã');
+        return $user->hasRole('admin');
     }
 
     public function update(User $user, PointOfSale $pos)
     {
-        if ($user->hasRole('ÇáãÏíÑ ÇáÚÇã')) {
+        if ($user->hasRole('admin')) {
             return true;
         }
 
-        if ($user->hasRole('ÇáãÔÑÝ')) {
+        if ($user->hasRole('supervisor')) {
+            // تحقق إذا كان المشرف مسؤول عن نقطة البيع هذه
             return $user->supervisedPoints->contains($pos->id);
         }
 
@@ -54,11 +59,11 @@ class PointOfSalePolicy
 
     public function delete(User $user)
     {
-        return $user->hasRole('ÇáãÏíÑ ÇáÚÇã');
+        return $user->hasRole('admin');
     }
 
     public function recharge(User $user, PointOfSale $pos)
     {
-        return $user->hasRole('ÇáãÍÇÓÈ');
+        return $user->hasRole('accountant');
     }
 }

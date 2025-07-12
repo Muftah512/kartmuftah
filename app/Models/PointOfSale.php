@@ -9,35 +9,51 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PointOfSale extends Model
 {
-        use HasFactory;
+    use HasFactory;
 
     protected $fillable = [
         'name',
         'location',
         'balance',
-        'supervisor_id'
+        // بدل supervisor_id أضف accountant_id
+        'accountant_id',
     ];
 
-public function scopeActive($query)
-{
-    return $query->where('is_active', 1);
-}
+    /**
+     * نطاق استعلام لإحضار النقاط النشطة
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', 1);
+    }
 
+    /**
+     * علاقة 1 - N مع البطاقات
+     */
     public function cards(): HasMany
     {
         return $this->hasMany(Card::class);
     }
 
-    public function supervisor(): BelongsTo
+    /**
+     * ربط نقطة البيع بالمحاسب (User) عبر accountant_id
+     */
+    public function accountant(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'supervisor_id');
+        return $this->belongsTo(User::class, 'accountant_id');
     }
 
+    /**
+     * علاقة 1 - N مع الفواتير (إن وجدت)
+     */
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
     }
 
+    /**
+     * علاقة 1 - N مع المعاملات
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'pos_id');
