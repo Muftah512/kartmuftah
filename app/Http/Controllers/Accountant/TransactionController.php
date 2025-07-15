@@ -8,13 +8,13 @@ use App\Models\RechargeTransaction;
 
 class TransactionController extends Controller
 {
-    public function index()
-    {
-        $transactions = RechargeTransaction::with('pos')
-            ->where('accountant_id', Auth::id())
-            ->latest()
-            ->get();
+public function index()
+{
+    $recharges = Transaction::with('pointOfSale','user')
+                     ->where('type','credit')
+                     ->latest()
+                     ->paginate(10);
 
-        return view('accountant.transactions', compact('transactions'));
-    }
+    return view('accountant.recharges.index', compact('recharges'));
+}
 }

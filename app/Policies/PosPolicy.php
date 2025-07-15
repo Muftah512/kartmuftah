@@ -27,7 +27,8 @@ class PosPolicy
         // Only admin can view
         return $user->hasRole('admin');
     }
-
+         return $user->id === $pos->accountant_id;
+}
     /**
      * Determine whether the user can create a POS record.
      */

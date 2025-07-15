@@ -76,7 +76,6 @@ class User extends Authenticatable
      */
     public function pointOfSale()
     {
-        return $this->belongsTo(PointOfSale::class);
 
     return $this->hasMany(PointOfSale::class, 'accountant_id');
       }

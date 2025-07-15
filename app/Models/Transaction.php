@@ -12,7 +12,13 @@ class Transaction extends Model
         'amount',
         'pos_id',
         'user_id',
-        'description'
+        'description',
+        'balance_after',
+        'payment_method',
+        'notes',
+        'invoice_id',
+        'reference_id'
+
     ];
 
     public function pointOfSale(): BelongsTo

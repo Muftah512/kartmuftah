@@ -11,45 +11,57 @@ class TransactionsTableSeeder extends Seeder
 {
     public function run()
     {
-        // جلب جميع نقاط البيع
         $pointsOfSale = PointOfSale::all();
-
-        // جلب جميع مستخدمي POS عبر الصلاحيات
         $users = User::role('pos')->get();
 
-        // إذا لم تكن هناك نقاط بيع، أنشئ 5 نقاط بيع افتراضية
         if ($pointsOfSale->isEmpty()) {
             $pointsOfSale = PointOfSale::factory(5)->create();
         }
-        
-        // إذا لم يكن هناك مستخدمي POS، أنشئ 5 وعيّن لهم دور pos
+
         if ($users->isEmpty()) {
             $users = User::factory(5)->create()->each(function ($user) {
                 $user->assignRole('pos');
             });
         }
 
-        // إنشاء معاملات لكل نقطة بيع
         foreach ($pointsOfSale as $pos) {
+            $balance = rand(1000, 3000); // رصيد مبدئي لكل نقطة بيع
+
+            // معاملة شحن مبدئية
+            $creditAmount = rand(500, 2000);
+            $balance += $creditAmount;
+
+            Transaction::create([
+                'type'          => 'credit',
+                'amount'        => $creditAmount,
+                'pos_id'        => $pos->id,
+                'user_id'       => $users->random()->id,
+                'description'   => 'شحن رصيد نقطة البيع',
+                'balance_after' => $balance,
+            ]);
+
+            // تحديث الرصيد في جدول نقطة البيع
+            $pos->balance = $balance;
+            $pos->save();
+
             // معاملات خصم (بيع كروت)
             for ($i = 0; $i < 5; $i++) {
+                $debitAmount = rand(20, 100);
+                $balance -= $debitAmount;
+
                 Transaction::create([
-                    'type'        => 'debit',
-                    'amount'      => rand(20, 100),
-                    'pos_id'      => $pos->id,
-                    'user_id'     => $users->random()->id,
-                    'description' => 'بيع كرت إنترنت رقم ' . ($i + 1),
+                    'type'          => 'debit',
+                    'amount'        => $debitAmount,
+                    'pos_id'        => $pos->id,
+                    'user_id'       => $users->random()->id,
+                    'description'   => 'بيع كرت إنترنت رقم ' . ($i + 1),
+                    'balance_after' => $balance,
                 ]);
+
+                // تحديث الرصيد الحالي بعد كل خصم
+                $pos->balance = $balance;
+                $pos->save();
             }
-            
-            // معاملة شحن (شحن رصيد)
-            Transaction::create([
-                'type'        => 'credit',
-                'amount'      => rand(500, 2000),
-                'pos_id'      => $pos->id,
-                'user_id'     => $users->random()->id,
-                'description' => 'شحن رصيد نقطة البيع',
-            ]);
         }
 
         $this->command->info('تم إنشاء ' . Transaction::count() . ' معاملة بنجاح');

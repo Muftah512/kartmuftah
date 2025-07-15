@@ -9,7 +9,8 @@
         </a>
     </div>
 
-   <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+    {{-- قسم إعادة تعيين كلمة المرور --}}
+    <div class="mt-8 bg-white rounded-lg shadow-md p-6">
         <h2 class="text-xl font-bold text-gray-800 mb-4">إعادة تعيين كلمة المرور</h2>
         
         <form action="{{ route('accountant.pos.reset-password', $pointOfSale->id) }}" method="POST">
@@ -32,22 +33,27 @@
                 </div>
             </div>
         </form>
-        
-        @if(session('success'))
-            <div class="mt-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-                {{ session('success') }}
-                @if(session('mail_sent'))
-                    <p class="mt-2">تم إرسال كلمة المرور الجديدة إلى صاحب نقطة البيع</p>
-                @else
-                    <p class="mt-2 text-yellow-700">لم يتم إرسال البريد الإلكتروني، يرجى إبلاغ صاحب نقطة البيع يدويًا</p>
-                @endif
-            </div>
+    </div>
+    
+    {{-- رسائل النجاح الموحدة --}}
+    @if(session('success'))
+        <div class="mt-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+            {{ session('success') }}
+            @if(session('mail_sent'))
+                <p class="mt-2">تم إرسال كلمة المرور الجديدة إلى صاحب نقطة البيع</p>
+            @else
+                <p class="mt-2 text-yellow-700">لم يتم إرسال البريد الإلكتروني، يرجى إبلاغ صاحب نقطة البيع يدويًا</p>
+            @endif
+        </div>
+    @endif
 
-    <div class="bg-white rounded-lg shadow-md p-6">
+    {{-- قسم المعلومات الأساسية --}}
+    <div class="mt-8 bg-white rounded-lg shadow-md p-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="border-r border-gray-200 pr-6">
                 <h2 class="text-lg font-semibold text-gray-700 mb-2">معلومات أساسية</h2>
                 <p><span class="font-medium">الاسم:</span> {{ $pointOfSale->name }}</p>
+                <p><span class="font-medium">البريد الإلكتروني:</span> {{ $pointOfSale->email }}</p>
                 <p><span class="font-medium">الموقع:</span> {{ $pointOfSale->location }}</p>
                 <p><span class="font-medium">الهاتف:</span> {{ $pointOfSale->phone }}</p>
                 <p class="mt-2">
@@ -78,14 +84,41 @@
                 <h2 class="text-lg font-semibold text-gray-700 mb-2">إجراءات سريعة</h2>
                 <div class="space-y-2">
                     <a href="{{ route('accountant.recharges.create', ['point_id' => $pointOfSale->id]) }}" class="block w-full bg-green-100 hover:bg-green-200 text-green-800 py-2 px-4 rounded-lg text-center transition">
-                        شحن رصيد
+                        <i class="fas fa-coins mr-1"></i> شحن رصيد
                     </a>
                     <a href="{{ route('accountant.invoices.create', ['point_id' => $pointOfSale->id]) }}" class="block w-full bg-blue-100 hover:bg-blue-200 text-blue-800 py-2 px-4 rounded-lg text-center transition">
-                        إنشاء فاتورة
+                        <i class="fas fa-file-invoice mr-1"></i> إنشاء فاتورة
                     </a>
                     <a href="#" class="block w-full bg-purple-100 hover:bg-purple-200 text-purple-800 py-2 px-4 rounded-lg text-center transition">
-                        تعديل النقطة
+                        <i class="fas fa-edit mr-1"></i> تعديل النقطة
                     </a>
+                    
+                    {{-- زر إعادة تعيين كلمة المرور --}}
+                    <button onclick="if(confirm('هل أنت متأكد من إعادة تعيين كلمة المرور؟')) document.getElementById('resetForm').submit()" 
+                            class="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-2 px-4 rounded-lg text-center transition">
+                        <i class="fas fa-key mr-1"></i> إعادة تعيين كلمة المرور
+                    </button>
+                    <form id="resetForm" action="{{ route('accountant.pos.reset-password', $pointOfSale->id) }}" method="POST" class="hidden">
+                        @csrf
+                        <input type="hidden" name="auto_generate" value="1">
+                    </form>
+                    
+                    {{-- زر التعطيل/التفعيل --}}
+                    @if($pointOfSale->is_active)
+                        <button onclick="if(confirm('هل أنت متأكد من تعطيل نقطة البيع؟')) document.getElementById('toggleForm').submit()" 
+                                class="w-full bg-red-100 hover:bg-red-200 text-red-800 py-2 px-4 rounded-lg text-center transition">
+                            <i class="fas fa-ban mr-1"></i> تعطيل النقطة
+                        </button>
+                    @else
+                        <button onclick="if(confirm('هل أنت متأكد من تفعيل نقطة البيع؟')) document.getElementById('toggleForm').submit()" 
+                                class="w-full bg-green-100 hover:bg-green-200 text-green-800 py-2 px-4 rounded-lg text-center transition">
+                            <i class="fas fa-check-circle mr-1"></i> تفعيل النقطة
+                        </button>
+                    @endif
+                    <form id="toggleForm" action="{{ route('accountant.pos.toggle-status', $pointOfSale->id) }}" method="POST" class="hidden">
+                        @csrf
+                        @method('PATCH')
+                    </form>
                 </div>
             </div>
         </div>

@@ -10,24 +10,21 @@ use App\Http\Controllers\Admin\ReportsController as AdminReportsController;
 use App\Http\Controllers\Accountant\DashboardController as AccountantDashboard;
 use App\Http\Controllers\Accountant\InvoiceController as AccountantInvoiceController;
 use App\Http\Controllers\Accountant\RechargeController as AccountantRechargeController;
+use App\Http\Controllers\Accountant\PointOfSaleController as AccountantPointOfSaleController; // تم التصحيح هنا
 use App\Http\Controllers\Pos\DashboardController as PosDashboard;
 use App\Http\Controllers\Pos\CardController as PosCardController;
 use App\Http\Controllers\Pos\SaleController as PosSaleController;
 use App\Http\Controllers\Accountant\PosReportController;
 use App\Http\Controllers\Accountant\TransactionsReportController;
-use App\Http\Controllers\Accountant\{
-    PointOfSaleController,
-    };
 
 /*
 |--------------------------------------------------------------------------
 | Authentication Routes
 |--------------------------------------------------------------------------
 */
- Route::get('login',  [LoginController::class, 'showLoginForm'])->name('login');
- Route::post('login', [LoginController::class, 'login']);
- Route::post('logout',[LoginController::class, 'logout'])->name('logout');
-
+Route::get('login',  [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('login', [LoginController::class, 'login']);
+Route::post('logout',[LoginController::class, 'logout'])->name('logout');
 /*
 |--------------------------------------------------------------------------
 | Home Redirect
@@ -98,26 +95,43 @@ Route::prefix('accountant')
     ->name('accountant.')
     ->middleware(['auth','role:accountant','ensure.active'])
     ->group(function(){
-        Route::get('dashboard', [AccountantDashboard::class,'index'])->name('dashboard');
-        //Route::resource('pos', PointOfSaleController::class);
-        Route::resource('invoices',  AccountantInvoiceController::class);
-        Route::resource('recharges', AccountantRechargeController::class);
-         Route::get('pos', [PointOfSaleController::class, 'index'])
-              ->name('pos.index');
+        // Dashboard
+        Route::get('/', [AccountantDashboard::class, 'index'])->name('dashboard');
+        
+        // POS Management
+        Route::prefix('pos')
+            ->name('pos.')
+            ->group(function(){
+                Route::get('/', [AccountantPointOfSaleController::class, 'index'])->name('index');
+                Route::get('/create', [AccountantPointOfSaleController::class, 'create'])->name('create');
+                Route::post('/', [AccountantPointOfSaleController::class, 'store'])->name('store');
+                Route::get('/{id}', [AccountantPointOfSaleController::class, 'show'])->name('show');
+                Route::get('/{id}/edit', [AccountantPointOfSaleController::class, 'edit'])->name('edit');
+                Route::patch('/{id}', [AccountantPointOfSaleController::class, 'update'])->name('update');
+                Route::delete('/{id}', [AccountantPointOfSaleController::class, 'destroy'])->name('destroy');
+                // إعادة تعيين كلمة المرور
+                Route::post('/{id}/reset-password', [AccountantPointOfSaleController::class, 'resetPassword'])
+                    ->name('reset-password');
+                
+                // تعطيل/تفعيل النقطة
+                Route::patch('/{id}/toggle-status', [AccountantPointOfSaleController::class, 'toggleStatus'])
+                    ->name('toggle-status');
+            });
+        
+        // Invoices
 
-         // إذا تريد صفحة الإنشاء:
-         Route::get('pos/create', [PointOfSaleController::class, 'create'])
-              ->name('pos.create');
-Route::get('reports/pos', [PosReportController::class, 'index'])
-     ->name('reports.pos');
-    Route::get('reports/transactions', [TransactionsReportController::class, 'index'])
-         ->name('reports.transactions');
-
-         // وتخزين النقطة:
-         Route::post('pos', [PointOfSaleController::class, 'store'])
-              ->name('pos.store');
+        Route::resource('invoices', AccountantInvoiceController::class);
+        
+        // Recharges
+        Route::resource('recharges', AccountantRechargeController::class)
+            ->only(['index','create','store']);
+        
+        // Reports
+        Route::get('reports/pos', [PosReportController::class, 'index'])
+            ->name('reports.pos');
+        Route::get('reports/transactions', [TransactionsReportController::class, 'index'])
+            ->name('reports.transactions');
     });
-
 /*
 |--------------------------------------------------------------------------
 | Point-of-Sale (POS) Routes

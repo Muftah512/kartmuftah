@@ -8,7 +8,7 @@ class CreatePointOfSalesTable extends Migration
 {
    public function up()
    {
-    Schema::create('point_of_sales', function (Blueprint $table) {
+    Schema::create('point_of_sales', function (Blueprint $table) {	
         $table->id();
         $table->string('name');
         $table->string('email')->unique();
@@ -17,7 +17,7 @@ class CreatePointOfSalesTable extends Migration
         $table->decimal('balance', 15, 2)->default(0);
         $table->boolean('is_active')->default(true);
         $table->boolean('whatsapp_enabled')->default(true); // ÅÖÇÝÉ åÐÇ ÇáÍÞá
-        $table->foreignId('supervisor_id')->nullable()->constrained('users');
+        $table->foreignId('accountant_id')->nullable()->constrained('users');
         $table->timestamps();
     });
 }

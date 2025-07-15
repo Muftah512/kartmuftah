@@ -31,8 +31,8 @@ class AuthServiceProvider extends ServiceProvider
             return $user->hasRole('admin');
         });
         Gate::define('view-pos', function ($user, PointOfSale $pos) {
-            return $user->hasRole('admin');
-        });
+    return $user->hasRole('admin') || $user->id === $pos->accountant_id;
+});  
         Gate::define('create-pos', function ($user) {
             return $user->hasRole('admin');
         });

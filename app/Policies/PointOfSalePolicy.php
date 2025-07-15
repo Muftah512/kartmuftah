@@ -17,43 +17,34 @@ class PointOfSalePolicy
                $user->hasRole('accountant');
     }
 
-    public function view(User $user, PointOfSale $pos)
-    {
-
-    return $user->id === $pointOfSale->accountant_id;
-
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        if ($user->hasRole('supervisor')) {
-            // تحقق إذا كان المشرف مسؤول عن نقطة البيع هذه
-            return $user->supervisedPoints->contains($pos->id);
-        }
-
-        if ($user->hasRole('accountant')) {
-            return true;
-        }
-
-        return false;
+public function view(User $user, PointOfSale $pos)
+{
+    if ($user->hasRole('admin')) {
+        return true;
     }
+
+    if ($user->hasRole('accountant')) {
+        return $user->id === $pos->accountant_id;
+    }
+
+    return false;
+}
 
     public function create(User $user)
     {
         return $user->hasRole('admin');
-    }
 
+        return $user->id === $pos->accountant_id;
+
+    }
     public function update(User $user, PointOfSale $pos)
     {
         if ($user->hasRole('admin')) {
             return true;
         }
 
-        if ($user->hasRole('supervisor')) {
-            // تحقق إذا كان المشرف مسؤول عن نقطة البيع هذه
-            return $user->supervisedPoints->contains($pos->id);
-        }
-
+            return $user->hasRole('accountant') && $user->id === $pos->accountant_id;
+    }
         return false;
     }
 
@@ -64,6 +55,6 @@ class PointOfSalePolicy
 
     public function recharge(User $user, PointOfSale $pos)
     {
-        return $user->hasRole('accountant');
-    }
+    return $user->hasRole('accountant') && $user->id === $pos->accountant_id;
+ }
 }

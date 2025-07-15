@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Accountant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Accountant\InvoiceRequest;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
 

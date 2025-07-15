@@ -3,56 +3,60 @@
 namespace App\Http\Controllers\Accountant;
 
 use App\Http\Controllers\Controller;
-use App\Models\PointOfSale;
-use App\Models\Transaction;
-use Illuminate\Http\Request;
 use App\Http\Requests\Accountant\RechargeRequest;
+use App\Models\PointOfSale;
+use App\Models\Invoice;
+use App\Models\Transaction;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class RechargeController extends Controller
 {
-    public function index()
-    {
-        $recharges = Transaction::where('type', 'credit')
-            ->with('pointOfSale')
-            ->latest()
-            ->paginate(10);
-            
-        return view('accountant.recharges.index', compact('recharges'));
-    }
-
+    /**
+     * إظهار نموذج الشحن
+     */
     public function create()
     {
-        $points = PointOfSale::where('is_active', true)->get();
+        $points = PointOfSale::where('accountant_id', Auth::id())->get();
         return view('accountant.recharges.create', compact('points'));
     }
 
+    /**
+     * معالجة طلب الشحن
+     */
     public function store(RechargeRequest $request)
     {
-        $validated = $request->validated();
-        
-        $pos = PointOfSale::findOrFail($validated['pos_id']);
-        
-        // زيادة الرصيد
-        $pos->balance += $validated['amount'];
+        $data = $request->validated();
+
+        // 1. زيادة رصيد نقطة البيع
+        $pos = PointOfSale::findOrFail($data['pos_id']);
+        $pos->balance += $data['amount'];
         $pos->save();
-        
-        // إنشاء الفاتورة
-        $invoice = $pos->invoices()->create([
-            'amount' => $validated['amount'],
-            'description' => 'شحن رصيد',
-            'status' => 'paid'
-        ]);
-        
-        // تسجيل المعاملة
-        Transaction::create([
-            'point_of_sale_id' => $pos->id,
-            'type' => 'credit',
-            'amount' => $validated['amount'],
-            'description' => 'شحن رصيد بواسطة المحاسب',
-            'balance_after' => $pos->balance,
-            'invoice_id' => $invoice->id
+
+        // 2. إنشاء فاتورة
+        $invoice = Invoice::create([
+            'pos_id' => $pos->id,
+            'accountant_id'    => Auth::id(),
+            'amount'           => $data['amount'],
+            'description'      => 'شحن رصيد',
+            'status'           => 'paid',
+            'due_date'         => Carbon::now(),
         ]);
 
-        return redirect()->route('accountant.recharges.index')->with('success', 'تم شحن الرصيد بنجاح');
+        // 3. تسجيل المعاملة
+        Transaction::create([
+            'pos_id' => $pos->id,
+            'type'             => 'credit',
+            'amount'           => $data['amount'],
+            'description'      => 'إضافة رصيد بعد الفاتورة #' . $invoice->id,
+            'balance_after'    => $pos->balance,
+            'payment_method'   => $data['payment_method'],
+            'notes'            => $data['notes'] ?? null,
+            'reference_id'     => $invoice->id,
+        ]);
+
+        return redirect()
+            ->route('accountant.recharges.index')
+            ->with('success', 'تم شحن الرصيد بنجاح.');
     }
 }

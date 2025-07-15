@@ -24,7 +24,7 @@ class PosController extends Controller
     {
         Gate::authorize('view-any-pos');
 
-        $poses = Pos::latest()->paginate(10);
+        $points = Pos::latest()->paginate(10);
 
         return view('admin.pos.index', compact('poses'));
     }

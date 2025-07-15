@@ -15,8 +15,12 @@ class PointOfSale extends Model
         'name',
         'location',
         'balance',
-        // بدل supervisor_id أضف accountant_id
+        'phone',
         'accountant_id',
+        'is_active',
+        'email',
+        'password',
+        'user_id',
     ];
 
     /**
@@ -27,6 +31,12 @@ class PointOfSale extends Model
         return $query->where('is_active', 1);
     }
 
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_id')
+                    ->withDefault([ 'name' => 'غير معروف' ]);
+    }
+
     /**
      * علاقة 1 - N مع البطاقات
      */
@@ -34,6 +44,10 @@ class PointOfSale extends Model
     {
         return $this->hasMany(Card::class);
     }
+public function user()
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
 
     /**
      * ربط نقطة البيع بالمحاسب (User) عبر accountant_id
