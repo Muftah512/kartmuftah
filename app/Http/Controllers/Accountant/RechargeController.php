@@ -24,39 +24,43 @@ class RechargeController extends Controller
     /**
      * معالجة طلب الشحن
      */
-    public function store(RechargeRequest $request)
-    {
-        $data = $request->validated();
+public function store(RechargeRequest $request)
+{
+    $data = $request->validated();
 
-        // 1. زيادة رصيد نقطة البيع
-        $pos = PointOfSale::findOrFail($data['pos_id']);
-        $pos->balance += $data['amount'];
-        $pos->save();
+    $pos = PointOfSale::findOrFail($data['pos_id']);
+    $pos->balance += $data['amount'];
+    $pos->save();
 
-        // 2. إنشاء فاتورة
-        $invoice = Invoice::create([
-            'pos_id' => $pos->id,
-            'accountant_id'    => Auth::id(),
-            'amount'           => $data['amount'],
-            'description'      => 'شحن رصيد',
-            'status'           => 'paid',
-            'due_date'         => Carbon::now(),
+    // استخدم 'pos_id' بدلاً من 'point_of_sale_id'
+    $invoice = Invoice::create([
+        'pos_id'         => $pos->id,
+        'accountant_id'  => Auth::id(),
+        'amount'         => $data['amount'],
+        'description'    => 'شحن رصيد',
+        'status'         => 'paid',
+        'due_date'       => Carbon::now(),
+    ]);
+
+    Transaction::create([
+        'pos_id'          => $pos->id,
+        'type'            => 'credit',
+        'amount'          => $data['amount'],
+        'description'     => 'إضافة رصيد بعد الفاتورة #' . $invoice->id,
+        'balance_after'   => $pos->balance,
+        'payment_method'  => $data['payment_method'],
+        'notes'           => $data['notes'] ?? null,
+        'reference_id'    => $invoice->id,
+        'user_id'         => Auth::id(),
+    ]);
+
+    // توجيه إلى صفحة إنشاء شحن جديدة مع رسالة نجاح
+    return redirect()
+        ->route('accountant.recharges.create')
+        ->with([
+            'success' => 'تم شحن الرصيد بنجاح',
+            'new_balance' => $pos->balance,
+            'pos_id' => $pos->id
         ]);
-
-        // 3. تسجيل المعاملة
-        Transaction::create([
-            'pos_id' => $pos->id,
-            'type'             => 'credit',
-            'amount'           => $data['amount'],
-            'description'      => 'إضافة رصيد بعد الفاتورة #' . $invoice->id,
-            'balance_after'    => $pos->balance,
-            'payment_method'   => $data['payment_method'],
-            'notes'            => $data['notes'] ?? null,
-            'reference_id'     => $invoice->id,
-        ]);
-
-        return redirect()
-            ->route('accountant.recharges.index')
-            ->with('success', 'تم شحن الرصيد بنجاح.');
-    }
+}
 }

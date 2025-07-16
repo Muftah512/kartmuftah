@@ -35,7 +35,7 @@ class PosPolicy
     public function create(User $user): bool
     {
         // Only admin can create POS
-        return $user->hasRole('admin');
+        return $user->hasAnyRole('admin,accountant');
     }
 
     /**
@@ -62,7 +62,7 @@ class PosPolicy
     public function restore(User $user, Pos $pos): bool
     {
         // Only admin can restore
-        return $user->hasRole('admin');
+        return $user->hasRole('admin,accountant');
     }
 
     /**

@@ -17,6 +17,17 @@ class InvoiceController extends Controller
             
         return view('accountant.invoices.index', compact('invoices'));
     }
+    public function create()
+    {
+        $points = PointOfSale::where('accountant_id', auth()->id())->get();
+        return view('accountant.invoices.create', compact('points'));
+    }
+
+    /**
+     * Store a newly created invoice.
+     */
+public function store(Request $request)
+    {
 
     public function show(Invoice $invoice)
     {

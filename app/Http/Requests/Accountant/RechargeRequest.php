@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Accountant;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RechargeRequest extends FormRequest
 {
@@ -14,7 +15,11 @@ class RechargeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pos_id' => ['required', 'integer', 'exists:point_of_sales,id'],
+            'pos_id' => [
+                'required',
+                'integer',
+                Rule::exists('point_of_sales', 'id')->where('accountant_id', auth()->id())
+            ],
             'amount'           => ['required', 'numeric', 'min:1'],
             'payment_method'   => ['required', 'in:cash,bank_transfer,card'],
             'notes'            => ['nullable', 'string'],
@@ -26,7 +31,7 @@ class RechargeRequest extends FormRequest
         return [
             'pos_id.required' => 'حقل نقطة البيع مطلوب.',
             'pos_id.integer'  => 'نقطة البيع غير صحيحة.',
-            'pos_id.exists'   => 'نقطة البيع المختارة غير موجودة.',
+            'pos_id.exists'   => 'نقطة البيع المختارة غير موجودة أو لا تتبعك.',
             'amount.required'           => 'المبلغ مطلوب.',
             'amount.numeric'            => 'المبلغ يجب أن يكون رقمًا.',
             'amount.min'                => 'المبلغ يجب أن يكون على الأقل 1.',

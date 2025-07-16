@@ -21,6 +21,10 @@ class PointOfSaleController extends Controller
 
     public function index()
     {
+$points = PointOfSale::select('id', 'name', 'balance')
+    ->where('accountant_id', Auth::id())
+    ->get();
+
         $points = PointOfSale::where('accountant_id', Auth::id())
             ->with('user') // Eager load user relationship
             ->latest() // Better readability than orderBy
