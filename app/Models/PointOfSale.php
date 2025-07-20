@@ -20,7 +20,7 @@ class PointOfSale extends Model
         'is_active',
         'email',
         'password',
-        'user_id',
+        'status',
     ];
 
     /**

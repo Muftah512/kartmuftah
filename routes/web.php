@@ -139,25 +139,37 @@ Route::prefix('accountant')
 */
 Route::prefix('pos')
     ->name('pos.')
-    ->middleware(['auth','role:pos','ensure.active'])
-    ->group(function(){
-        Route::get('dashboard', [PosDashboard::class,'index'])->name('dashboard');
-
+    ->middleware(['auth', 'role:pos', 'ensure.active'])
+    ->group(function() {
+        // لوحة التحكم
+        Route::get('dashboard', [PosDashboardController::class, 'index'])->name('dashboard');
+        
         // إدارة البطاقات
         Route::prefix('cards')
             ->name('cards.')
-            ->group(function(){
-                Route::get('generate',  [PosCardController::class,'generateForm'])->name('generate');
-                Route::post('generate', [PosCardController::class,'generate'])->name('generate.submit');
-                Route::get('recharge',  [PosCardController::class,'rechargeForm'])->name('recharge');
-                Route::post('recharge', [PosCardController::class,'recharge'])->name('recharge.submit');
-                Route::get('result/{card}', [PosCardController::class,'result'])->name('result');
+            ->group(function() {
+                Route::get('generate', [CardController::class, 'generateForm'])->name('generate');
+                Route::post('generate', [CardController::class, 'generate'])->name('generate.submit');
+                
+                Route::get('recharge', [CardController::class, 'rechargeForm'])->name('recharge');
+                Route::post('recharge', [CardController::class, 'recharge'])->name('recharge.submit');
+                
+                Route::get('result/{card}', [CardController::class, 'result'])
+                    ->name('result')
+                    ->where('card', '[0-9]+'); // التأكد أن card هو رقم
             });
-
+        
         // المبيعات
-        Route::get('sales', [PosSaleController::class,'index'])->name('sales.index');
+        Route::get('sales', [SalesController::class, 'index'])->name('sales.index');
+        
+        // المعاملات
+        Route::get('transactions', [TransactionController::class, 'index'])->name('transactions.index');
+        
+        // إعادة إرسال الكروت عبر واتساب
+        Route::post('cards/send-whatsapp/{card}', [CardController::class, 'sendViaWhatsApp'])
+            ->name('cards.send-whatsapp')
+            ->where('card', '[0-9]+');
     });
-
 /*
 |--------------------------------------------------------------------------
 | Jetstream / Sanctum (optional)

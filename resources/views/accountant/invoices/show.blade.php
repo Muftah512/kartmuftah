@@ -58,7 +58,8 @@
                     @if($invoice->status === 'paid')
                     <div class="flex justify-between mb-2">
                         <span class="font-medium">تاريخ الدفع:</span>
-                        <span>{{ $invoice->paid_at->format('d/m/Y') }}</span>
+                        {{-- Corrected line: Use optional() to safely access format() --}}
+                        <span>{{ optional($invoice->paid_at)->format('d/m/Y') ?? 'غير متاح' }}</span>
                     </div>
                     <div class="flex justify-between mb-2">
                         <span class="font-medium">طريقة الدفع:</span>

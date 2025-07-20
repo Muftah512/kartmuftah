@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Invoice extends Model
 {
     protected $fillable = [
-           'point_of_sale_id',
+        'pos_id', // <--- تم تغيير هذا من 'point_of_sale_id' إلى 'pos_id' ليتوافق مع المايجريشن
         'accountant_id',
         'amount',
         'description',
@@ -26,19 +26,31 @@ class Invoice extends Model
         'amount' => 'float'
     ];
 
-    // علاقة الفاتورة مع نقطة البيع
+    /**
+     * Get the point of sale that owns the Invoice.
+     * علاقة الفاتورة مع نقطة البيع
+     */
     public function pointOfSale(): BelongsTo
     {
-        return $this->belongsTo(PointOfSale::class);
+        // تم تحديد المفتاح الأجنبي 'pos_id' صراحة هنا ليتوافق مع المايجريشن
+        // هذا يحل مشكلة "Attempt to read property 'name' on null" المتعلقة بنقطة البيع
+        return $this->belongsTo(PointOfSale::class, 'pos_id');
     }
 
-    // علاقة الفاتورة مع المحاسب
+    /**
+     * Get the accountant (User) that owns the Invoice.
+     * علاقة الفاتورة مع المحاسب (المستخدم)
+     */
     public function accountant(): BelongsTo
     {
+        // هذه العلاقة كانت صحيحة بالفعل، حيث تم تحديد المفتاح الأجنبي 'accountant_id' صراحة
         return $this->belongsTo(User::class, 'accountant_id');
     }
 
-    // دالة لتحديد حالة الفاتورة بشكل نصي
+    /**
+     * Get the status of the invoice as a readable string.
+     * دالة لتحديد حالة الفاتورة بشكل نصي
+     */
     public function getStatusTextAttribute(): string
     {
         return [
@@ -48,11 +60,14 @@ class Invoice extends Model
         ][$this->status] ?? 'غير معروف';
     }
 
-    // دالة لتحديد حالة الدفع بشكل نصي
+    /**
+     * Get the payment method of the invoice as a readable string.
+     * دالة لتحديد طريقة الدفع بشكل نصي
+     */
     public function getPaymentMethodTextAttribute(): string
     {
         return match($this->payment_method) {
-            'cash' => 'نقدي',
+	            'cash' => 'نقدي',
             'bank_transfer' => 'تحويل بنكي',
             'card' => 'بطاقة',
             'vodafone_cash' => 'فودافون كاش',
@@ -60,4 +75,10 @@ class Invoice extends Model
             default => 'غير محدد'
         };
     }
+
+public function transactions()
+{
+return $this->hasMany(Transaction::class);
 }
+}
+

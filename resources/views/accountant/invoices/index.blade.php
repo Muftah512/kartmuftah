@@ -24,8 +24,8 @@
                 @foreach($invoices as $invoice)
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">{{ $invoice->pointOfSale->name }}</div>
-                        <div class="text-sm text-gray-500">{{ $invoice->pointOfSale->location }}</div>
+                        <div class="text-sm font-medium text-gray-900">{{ $invoice->pointOfSale?->name ?? 'غير معروف'}}</div>
+                        <div class="text-sm text-gray-500">{{ $invoice->pointOfSale?->location ?? '---' }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
                         {{ number_format($invoice->amount) }} ر.ي

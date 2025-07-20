@@ -11,19 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-    Schema::table('invoices', function (Blueprint $table) {
-        if (Schema::hasColumn('invoices', 'point_of_sale_id')) {
-            $table->dropColumn('point_of_sale_id');
-        }
-    });
-}
+        Schema::table('point_of_sales', function (Blueprint $table) {
+    $table->unsignedBigInteger('user_id')->nullable()->change();
+});
+    }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-    Schema::table('invoices', function (Blueprint $table) {
-        $table->foreignId('point_of_sale_id')->nullable()->constrained();
-    });
-}
+        Schema::table('point_of_sales', function (Blueprint $table) {
+            //
+        });
+    }
 };

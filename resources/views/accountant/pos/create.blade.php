@@ -208,6 +208,10 @@
             transition: width 0.4s ease;
         }
         
+        .password-strength-bar.weak { background-color: #ef4444; } /* أحمر */
+        .password-strength-bar.medium { background-color: #f59e0b; } /* برتقالي */
+        .password-strength-bar.strong { background-color: #22c55e; } /* أخضر */
+        
         .password-hints {
             margin-top: 8px;
             font-size: 0.85rem;
@@ -254,19 +258,26 @@
         </div>
         
         <div class="form-body">
-            <!-- Success Message -->
-            <div class="alert alert-success" style="display: none;">
-                <i class="fas fa-check-circle me-2"></i>تم إضافة نقطة البيع بنجاح!
-            </div>
+            @if (session('success'))
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    الرجاء تصحيح الأخطاء التالية:
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             
-            <!-- Error Message -->
-            <div class="alert alert-danger" style="display: none;">
-                <i class="fas fa-exclamation-circle me-2"></i>حدث خطأ أثناء الإضافة. يرجى مراجعة البيانات المدخلة.
-            </div>
-            
-            <form id="posForm">
-                <!-- Account Information Section -->
-                <h3 class="section-title">
+            <form id="posForm" action="{{ route('accountant.pos.store') }}" method="POST">
+                @csrf <h3 class="section-title">
                     <i class="fas fa-user-circle me-2"></i>معلومات الحساب
                 </h3>
                 
@@ -276,10 +287,11 @@
                             <i class="fas fa-store me-2"></i>اسم نقطة البيع
                         </label>
                         <div class="position-relative">
-                            <input type="text" name="name" id="name" class="form-control" placeholder="أدخل اسم نقطة البيع" required>
+                            <input type="text" name="name" id="name" class="form-control" placeholder="أدخل اسم نقطة البيع" required value="{{ old('name') }}">
                             <span class="form-icon"><i class="fas fa-store"></i></span>
                         </div>
-                        <div class="invalid-feedback">يرجى إدخال اسم نقطة البيع</div>
+                        {{-- Laravel سيقوم بإظهار رسالة الخطأ هنا إذا كان الحقل فارغاً أو غير صالح --}}
+                        {{-- @error('name') <div class="text-danger mt-1">{{ $message }}</div> @enderror --}}
                     </div>
                     
                     <div class="mb-4">
@@ -287,10 +299,10 @@
                             <i class="fas fa-envelope me-2"></i>البريد الإلكتروني
                         </label>
                         <div class="position-relative">
-                            <input type="email" name="email" id="email" class="form-control" placeholder="أدخل البريد الإلكتروني" required>
+                            <input type="email" name="email" id="email" class="form-control" placeholder="أدخل البريد الإلكتروني" required value="{{ old('email') }}">
                             <span class="form-icon"><i class="fas fa-envelope"></i></span>
                         </div>
-                        <div class="invalid-feedback">يرجى إدخال بريد إلكتروني صحيح</div>
+                        {{-- @error('email') <div class="text-danger mt-1">{{ $message }}</div> @enderror --}}
                     </div>
                     
                     <div class="mb-4">
@@ -298,10 +310,10 @@
                             <i class="fas fa-phone me-2"></i>رقم الهاتف
                         </label>
                         <div class="position-relative">
-                            <input type="tel" name="phone" id="phone" class="form-control" placeholder="أدخل رقم الهاتف" required>
+                            <input type="tel" name="phone" id="phone" class="form-control" placeholder="أدخل رقم الهاتف" required value="{{ old('phone') }}">
                             <span class="form-icon"><i class="fas fa-phone"></i></span>
                         </div>
-                        <div class="invalid-feedback">يرجى إدخال رقم هاتف صحيح</div>
+                        {{-- @error('phone') <div class="text-danger mt-1">{{ $message }}</div> @enderror --}}
                     </div>
                     
                     <div class="mb-4">
@@ -309,14 +321,13 @@
                             <i class="fas fa-location-dot me-2"></i>الموقع
                         </label>
                         <div class="position-relative">
-                            <input type="text" name="location" id="location" class="form-control" placeholder="أدخل موقع نقطة البيع" required>
+                            <input type="text" name="location" id="location" class="form-control" placeholder="أدخل موقع نقطة البيع" required value="{{ old('location') }}">
                             <span class="form-icon"><i class="fas fa-location-dot"></i></span>
                         </div>
-                        <div class="invalid-feedback">يرجى إدخال موقع نقطة البيع</div>
+                        {{-- @error('location') <div class="text-danger mt-1">{{ $message }}</div> @enderror --}}
                     </div>
                 </div>
                 
-                <!-- Password Section -->
                 <h3 class="section-title">
                     <i class="fas fa-lock me-2"></i>كلمة المرور
                 </h3>
@@ -349,6 +360,7 @@
                                 <i class="fas fa-circle"></i> تحتوي على رمز خاص
                             </div>
                         </div>
+                        {{-- @error('password') <div class="text-danger mt-1">{{ $message }}</div> @enderror --}}
                     </div>
                     
                     <div class="mb-4">
@@ -362,17 +374,18 @@
                                 <i class="fas fa-eye"></i>
                             </span>
                         </div>
-                        <div class="invalid-feedback">كلمتا المرور غير متطابقتين</div>
+                        {{-- @error('password_confirmation') <div class="text-danger mt-1">{{ $message }}</div> @enderror --}}
                     </div>
                 </div>
                 
-                <!-- Status Section -->
                 <h3 class="section-title">
                     <i class="fas fa-toggle-on me-2"></i>حالة نقطة البيع
                 </h3>
                 
                 <div class="form-check form-switch mb-4">
-                    <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" checked>
+                    {{-- هذا الحقل المخفي يضمن إرسال قيمة '0' (false) إذا لم يتم تحديد الـ checkbox --}}
+                    <input type="hidden" name="is_active" value="0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}>
                     <label class="form-check-label" for="is_active">
                         <i class="fas fa-power-off me-2"></i>نشط
                     </label>
@@ -399,7 +412,8 @@
                         input.type = 'text';
                         icon.classList.remove('fa-eye');
                         icon.classList.add('fa-eye-slash');
-                    } else {
+                    }
+                    else {
                         input.type = 'password';
                         icon.classList.remove('fa-eye-slash');
                         icon.classList.add('fa-eye');
@@ -445,37 +459,20 @@
                 // Update strength bar
                 strengthBar.style.width = `${strength}%`;
                 
-                // Update bar color
+                // Update bar color based on strength
+                strengthBar.classList.remove('weak', 'medium', 'strong'); // إزالة الفئات القديمة
                 if (strength < 33) {
-                    strengthBar.style.backgroundColor = '#ef4444';
+                    strengthBar.classList.add('weak');
                 } else if (strength < 66) {
-                    strengthBar.style.backgroundColor = '#f59e0b';
+                    strengthBar.classList.add('medium');
                 } else {
-                    strengthBar.style.backgroundColor = '#22c55e';
+                    strengthBar.classList.add('strong');
                 }
             });
             
-            // Form submission simulation
-            const form = document.getElementById('posForm');
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Show success message
-                document.querySelector('.alert-success').style.display = 'block';
-                document.querySelector('.alert-danger').style.display = 'none';
-                
-                // Reset form after 2 seconds (simulation)
-                setTimeout(() => {
-                    form.reset();
-                    document.querySelector('.alert-success').style.display = 'none';
-                    strengthBar.style.width = '0';
-                    
-                    // Reset hints
-                    [lengthHint, numberHint, specialHint].forEach(hint => {
-                        hint.classList.remove('valid');
-                    });
-                }, 2000);
-            });
+            // **تم إزالة جزء JavaScript الذي كان يمنع إرسال النموذج ويظهر رسائل نجاح وهمية.**
+            // الآن سيعمل النموذج بشكل طبيعي مع Laravel.
+            // رسائل النجاح/الخطأ ستظهر بناءً على ما يعيده الكنترولر (session messages/errors).
         });
     </script>
 </body>

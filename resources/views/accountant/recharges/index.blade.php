@@ -24,8 +24,12 @@
                 @foreach($recharges as $recharge)
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">{{ $recharge->pointOfSale->name }}</div>
-                        <div class="text-sm text-gray-500">{{ $recharge->pointOfSale->location }}</div>
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ $recharge->pointOfSale?->name ?? 'غير محدد' }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ $recharge->pointOfSale?->location ?? '---' }}
+                        </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
                         {{ number_format($recharge->amount) }} ر.ي
@@ -40,7 +44,7 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {{ $recharge->accountant->name }}
+                        {{ $recharge->accountant?->name ?? 'مستخدم محذوف' }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {{ $recharge->created_at->format('d/m/Y H:i') }}

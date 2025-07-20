@@ -23,7 +23,7 @@ class AuthServiceProvider extends ServiceProvider
         // سجّل الـ Policies أولاً
         $this->registerPolicies();
 
-                Gate::define('manage_pos', fn($user) => $user->hasRole('admin'));
+                Gate::define('manage_pos', fn($user) => $user->hasRole('admin')) || $user->id === $pos->accountant_id;
 
         //––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
         // بوّابات الوصول (Gates) لإدارة نقاط البيع
@@ -35,13 +35,13 @@ class AuthServiceProvider extends ServiceProvider
     return $user->hasRole('admin') || $user->id === $pos->accountant_id;
 });  
         Gate::define('create-pos', function ($user) {
-            return $user->hasRole('admin');
+            return $user->hasRole('admin') || $user->id === $pos->accountant_id;
         });
         Gate::define('update-pos', function ($user, PointOfSale $pos) {
-            return $user->hasRole('admin');
+            return $user->hasRole('admin') || $user->id === $pos->accountant_id;
         });
         Gate::define('delete-pos', function ($user, PointOfSale $pos) {
-            return $user->hasRole('admin');
+            return $user->hasRole('admin') || $user->id === $pos->accountant_id;
         });
         //––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
