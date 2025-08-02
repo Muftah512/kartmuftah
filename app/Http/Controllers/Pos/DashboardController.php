@@ -4,20 +4,56 @@ namespace App\Http\Controllers\Pos;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Transaction;
+use App\Models\Package;
 use App\Models\InternetCard;
+use App\Models\PointOfSale;
+use App\Models\Transaction;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use App\Models\Invoice;
+use App\Models\User;
+//use App\Http\Controllers\MikroTikController;
+use App\Services\ActivityLogger;
+//use App\Models\Transaction;
+//use App\Models\InternetCard;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
-        $pos = $user->pointOfSale;
-        
-        // الرصيد الحالي
-        $balance = $pos->balance;
-        
+
+    $user = Auth::user();
+    
+    // الحل المباشر: البحث عن نقطة البيع المرتبطة بالمستخدم
+    $pos = PointOfSale::where('accountant_id', $user->id)->first();
+    
+    // إذا لم نجد، نبحث بالبريد الإلكتروني (كحل بديل)
+    if (!$pos) {
+        $pos = PointOfSale::where('email', $user->email)->first();
+    }
+    
+    // إذا لم نجد بعد، ننشئ نقطة بيع تلقائياً (فقط في بيئة التطوير)
+    if (!$pos && app()->environment('local')) {
+        $pos = PointOfSale::create([
+            'name' => $user->name,
+            'email' => $user->email,
+            'password' => bcrypt('temp_password'), 
+            'accountant_id' => $user->id,
+            'balance' => 0,
+            'is_active' => true
+        ]);
+    }
+    
+    // إذا استمر عدم العثور، نعرض خطأ
+    if (!$pos) {
+        return view('pos.error', [
+            'message' => 'لم يتم تعيين نقطة بيع لهذا المستخدم. الرجاء التواصل مع المسؤول.'
+        ]);
+    }
+
+    // الرصيد الحالي (مباشرة من المستخدم)
+    $balance = $pos->balance;     
         // إحصائيات اليوم
         $today = Carbon::today();
         $todayCards = InternetCard::where('pos_id', $pos->id)
@@ -56,7 +92,7 @@ class DashboardController extends Controller
                 ->whereDate('created_at', $date)
                 ->count();
                 
-            $amount = Transaction::where('pos_id', $pos->id)
+            $amount = Transaction::where('user_id', $pos->id)
                 ->where('type', 'debit')
                 ->whereDate('created_at', $date)
                 ->sum('amount');

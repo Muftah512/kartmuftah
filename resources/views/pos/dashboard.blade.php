@@ -106,9 +106,10 @@
         <div class="bg-white p-6 rounded-lg shadow">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold">آخر المعاملات</h2>
-                <a href="{{ route('pos.transactions') }}" class="text-blue-600 hover:text-blue-800 text-sm">
+                <!-- تم إصلاح الرابط المؤدي إلى صفحة غير موجودة -->
+                <span class="text-gray-500 text-sm">
                     عرض الكل <i class="fas fa-arrow-left ml-1"></i>
-                </a>
+                </span>
             </div>
             
             <div class="space-y-4">
@@ -119,7 +120,7 @@
                             <p class="font-medium">{{ $transaction->description }}</p>
                             <p class="text-sm text-gray-500">
                                 {{ $transaction->created_at->format('d/m/Y H:i') }} 
-                                بواسطة {{ $transaction->user->name }}
+                                بواسطة {{ $transaction->user->name ?? 'غير معروف' }}
                             </p>
                         </div>
                         <div class="text-right">
@@ -158,10 +159,10 @@
                 <div class="flex justify-between items-start">
                     <div>
                         <h3 class="font-bold text-lg text-indigo-600">{{ $card->username }}</h3>
-                        <p class="text-gray-600">{{ $card->package->name }}</p>
+                        <p class="text-gray-600">{{ $card->package->name ?? 'غير معروف' }}</p>
                     </div>
                     <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                        {{ $card->package->validity_days }} يوم
+                        {{ $card->package->validity_days ?? 0 }} يوم
                     </span>
                 </div>
                 
@@ -172,13 +173,14 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500">تاريخ الانتهاء</p>
-                        <p>{{ $card->expiration_date->format('d/m/Y H:i') }}</p>
+                         {{ $card->expiration_date ? $card->expiration_date->format('d/m/Y H:i') : 'تاريخ غير محدد' }}
+                                             </p>
                     </div>
                 </div>
                 
                 <div class="mt-4 flex justify-between">
                     <span class="text-lg font-bold text-gray-800">
-                        {{ number_format($card->package->price) }} ريال
+                        {{ number_format($card->package->price ?? 0) }} ريال
                     </span>
                     <div class="flex space-x-2">
                         <button class="text-blue-600 hover:text-blue-800">
@@ -211,12 +213,12 @@
             <h3 class="text-lg font-semibold">إعادة شحن كرت</h3>
         </a>
         
-        <a href="{{ route('pos.sales') }}" class="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 rounded-lg shadow text-center hover:shadow-lg transition-shadow">
+        <a href="#" class="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 rounded-lg shadow text-center hover:shadow-lg transition-shadow">
             <i class="fas fa-chart-bar text-3xl mb-3"></i>
             <h3 class="text-lg font-semibold">تقارير المبيعات</h3>
         </a>
         
-        <a href="{{ route('pos.transactions') }}" class="bg-gradient-to-r from-pink-500 to-rose-600 text-white p-6 rounded-lg shadow text-center hover:shadow-lg transition-shadow">
+        <a href="#" class="bg-gradient-to-r from-pink-500 to-rose-600 text-white p-6 rounded-lg shadow text-center hover:shadow-lg transition-shadow">
             <i class="fas fa-exchange-alt text-3xl mb-3"></i>
             <h3 class="text-lg font-semibold">سجل المعاملات</h3>
         </a>
@@ -226,13 +228,9 @@
 
 @section('scripts')
 <script>
-    // يمكنك إضافة أي سكريبتات تفاعلية هنا
     document.addEventListener('DOMContentLoaded', function() {
-        // مثال: تحديث البيانات كل 5 دقائق
-        setInterval(() => {
-            // هنا كود لتحديث البيانات دون إعادة تحميل الصفحة
-            console.log('تحديث بيانات لوحة التحكم...');
-        }, 300000); // 5 دقائق
+        // يمكنك إضافة أي سكريبتات تفاعلية هنا
+        console.log('تم تحميل لوحة التحكم بنجاح');
     });
 </script>
 @endsection

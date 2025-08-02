@@ -18,6 +18,7 @@ class AdminUserSeeder extends Seeder
                 'password'          => Hash::make('secret123'), // غيّر كلمة المرور كما تريد
                 'is_active'         => true,
                 'point_of_sale_id'  => null,                   // لا ينطبق على المدير العام
+                                 'role' => 'admin'
             ]
         );
 

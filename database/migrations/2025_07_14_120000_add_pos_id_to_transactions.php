@@ -11,16 +11,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // نتحقق أولاً أن العمود غير موجود لتفادي التضارب
-        if (! Schema::hasColumn('transactions', 'pos_id')) {
-            Schema::table('transactions', function (Blueprint $table) {
-                // إضافة العمود وربطه بجدول point_of_sales
-                $table->foreignId('pos_id')
-                      ->after('id')
-                      ->constrained('point_of_sales')
-                      ->cascadeOnDelete();
-            });
-        }
+        Schema::table('transactions', function (Blueprint $table) {
+            // أضف عمود pos_id فقط إذا لم يكن موجودًا
+            if (!Schema::hasColumn('transactions', 'pos_id')) {
+                $table->unsignedBigInteger('pos_id')->nullable()->after('id'); // يمكنك تعديل 'after' حسب رغبتك
+            }
+            // إضافة المفتاح الأجنبي بشكل آمن
+            if (Schema::hasColumn('transactions', 'pos_id') && !Schema::hasColumn('transactions', 'point_of_sale_id')) { // التأكد من عدم وجود قيد مماثل
+                // التحقق من عدم وجود المفتاح الأجنبي مسبقًا
+                $foreignKeys = Schema::getConnection()->getDoctrineSchemaManager()->listTableForeignKeys('transactions');
+                $fkExists = false;
+                foreach ($foreignKeys as $fk) {
+                    if (in_array('pos_id', $fk->getColumns()) && $fk->getForeignTableName() === 'point_of_sales') {
+                        $fkExists = true;
+                        break;
+                    }
+                }
+                if (!$fkExists) {
+                    $table->foreign('pos_id')->references('id')->on('point_of_sales')->onDelete('set null');
+                }
+            }
+        });
     }
 
     /**
@@ -28,13 +39,22 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (Schema::hasColumn('transactions', 'pos_id')) {
-            Schema::table('transactions', function (Blueprint $table) {
-                // أولاً نزيل القيد
-                $table->dropForeign(['pos_id']);
-                // ثم نحذف العمود نفسه
+        Schema::table('transactions', function (Blueprint $table) {
+            // حذف المفتاح الأجنبي أولاً بأمان
+            if (Schema::hasColumn('transactions', 'pos_id')) {
+                $foreignKeys = Schema::getConnection()->getDoctrineSchemaManager()->listTableForeignKeys('transactions');
+                foreach ($foreignKeys as $fk) {
+                    if (in_array('pos_id', $fk->getColumns()) && $fk->getForeignTableName() === 'point_of_sales') {
+                        $table->dropForeign($fk->getName());
+                        break;
+                    }
+                }
+            }
+
+            // حذف عمود pos_id بأمان
+            if (Schema::hasColumn('transactions', 'pos_id')) {
                 $table->dropColumn('pos_id');
-            });
-        }
+            }
+        });
     }
 };

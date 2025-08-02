@@ -34,7 +34,7 @@ class PointOfSale extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_id')
-                    ->withDefault([ 'name' => 'غير معروف' ]);
+                    ->withDefault([ 'name' => 'انت ' ]);
     }
 
     /**
@@ -42,13 +42,16 @@ class PointOfSale extends Model
      */
     public function cards(): HasMany
     {
-        return $this->hasMany(Card::class);
+        return $this->hasMany(InternetCard::class);
     }
-public function user()
+    public function users()
+    {
+        return $this->hasMany(User::class, 'point_of_sale_id');
+    }
+public function pos()
 {
-    return $this->belongsTo(User::class, 'user_id');
+    return $this->hasOne(Pos::class);
 }
-
     /**
      * ربط نقطة البيع بالمحاسب (User) عبر accountant_id
      */

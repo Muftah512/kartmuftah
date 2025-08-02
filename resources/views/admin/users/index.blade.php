@@ -138,12 +138,14 @@
                             </div>
                         </td>
                         <td class="px-6 py-4">
-                          @forelse($user->pointOfSale as $pos)
-                            <span class="badge">{{ $pos->name }}</span>
-                                 @empty
-                                    N/A
-                                 @endforelse
-                                   </td>
+                          @if($user->pointOfSale)
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                              {{ $user->pointOfSale->name }}
+                            </span>
+                          @else
+                            <span class="text-gray-500">N/A</span>
+                          @endif
+                        </td>
                         <td class="px-6 py-4">
                             <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                                 {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">

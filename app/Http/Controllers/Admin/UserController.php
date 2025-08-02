@@ -28,7 +28,7 @@ class UserController extends Controller
         $accountantUsers = User::role('accountant')->count();
         $posUsers        = User::role('pos')->count();
 
-        $users = User::with('pointOfSale')->paginate(15);
+        $users = User::with('pointOfSale')->paginate(20);
         $roles = Role::pluck('name');
 
         return view('admin.users.index', compact(
@@ -58,24 +58,16 @@ class UserController extends Controller
      */
 public function store(StoreUserRequest $request)
 {
-    // 1. اجلب البيانات المسموح بها
     $validated = $request->validated();
 
-    // 2. احفظ قيمة الدور ثم ازلها من المصفوفة كي لا تحاول لارافيل تعبئتها في العمود
-    $role = $validated['role'];
-    unset($validated['role']);
-
-    // 3. شفر كلمة المرور وضع حالة التفعيل
     $validated['password']  = Hash::make($validated['password']);
     $validated['is_active'] = true;
 
-    // 4. أنشئ المستخدم
     $user = User::create($validated);
 
-    // 5. عيّن الدور باستخدام Spatie
-    $user->assignRole($role);
+    // فقط عيّن الدور باستخدام Spatie
+    $user->assignRole($validated['role']);
 
-    // 6. أعد التوجيه
     return redirect()
         ->route('admin.users.index')
         ->with('success', 'تم إنشاء المستخدم بنجاح');

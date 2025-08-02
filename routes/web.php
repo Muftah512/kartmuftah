@@ -11,8 +11,8 @@ use App\Http\Controllers\Accountant\DashboardController as AccountantDashboard;
 use App\Http\Controllers\Accountant\InvoiceController as AccountantInvoiceController;
 use App\Http\Controllers\Accountant\RechargeController as AccountantRechargeController;
 use App\Http\Controllers\Accountant\PointOfSaleController as AccountantPointOfSaleController; // تم التصحيح هنا
-use App\Http\Controllers\Pos\DashboardController as PosDashboard;
-use App\Http\Controllers\Pos\CardController as PosCardController;
+use App\Http\Controllers\Pos\DashboardController;
+use App\Http\Controllers\Pos\InternetCardController;
 use App\Http\Controllers\Pos\SaleController as PosSaleController;
 use App\Http\Controllers\Accountant\PosReportController;
 use App\Http\Controllers\Accountant\TransactionsReportController;
@@ -142,29 +142,34 @@ Route::prefix('pos')
     ->middleware(['auth', 'role:pos', 'ensure.active'])
     ->group(function() {
         // لوحة التحكم
-        Route::get('dashboard', [PosDashboardController::class, 'index'])->name('dashboard');
+        Route::get('pos/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
         
         // إدارة البطاقات
         Route::prefix('cards')
             ->name('cards.')
             ->group(function() {
-                Route::get('generate', [CardController::class, 'generateForm'])->name('generate');
-                Route::post('generate', [CardController::class, 'generate'])->name('generate.submit');
+                Route::get('generate', [InternetCardController::class, 'generateForm'])->name('generate');
+                Route::post('generate', [InternetCardController::class, 'generate'])->name('generate.submit');
                 
-                Route::get('recharge', [CardController::class, 'rechargeForm'])->name('recharge');
-                Route::post('recharge', [CardController::class, 'recharge'])->name('recharge.submit');
-                
-                Route::get('result/{card}', [CardController::class, 'result'])
+                Route::get('recharge', [InternetCardController::class, 'rechargeForm'])->name('recharge');
+                Route::post('/recharge', [InternetCardController::class, 'recharge'])->name('recharge.submit');
+                Route::get('/cards', [InternetCardController::class, 'index']);
+                Route::get('result/{internetcard}', [InternetCardController::class, 'result'])
                     ->name('result')
                     ->where('card', '[0-9]+'); // التأكد أن card هو رقم
             });
         
         // المبيعات
-        Route::get('sales', [SalesController::class, 'index'])->name('sales.index');
-        
+    Route::get('/sales', [\App\Http\Controllers\Pos\SalesController::class, 'index'])
+         ->name('sales');        
         // المعاملات
-        Route::get('transactions', [TransactionController::class, 'index'])->name('transactions.index');
-        
+            Route::get('/transactions', [\App\Http\Controllers\Pos\TransactionController::class, 'index'])
+         ->name('transactions');
+
+        Route::get('/pos/{pos}/mikrotik-packages', [App\Http\Controllers\PosController::class, 'fetchPackagesFromMikrotik'])
+    ->name('pos.mikrotik.packages');
+
         // إعادة إرسال الكروت عبر واتساب
         Route::post('cards/send-whatsapp/{card}', [CardController::class, 'sendViaWhatsApp'])
             ->name('cards.send-whatsapp')

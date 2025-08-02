@@ -41,10 +41,10 @@ class PosPolicy
     /**
      * Determine whether the user can update the POS record.
      */
-    public function update(User $user, Pos $pos): bool
+    public function update(User $user, Pos $post): bool
     {
         // Only admin can update
-        return $user->hasRole('admin');
+         return $user->id === $post->user_id || $user->hasRole('admin');
     }
 
     /**

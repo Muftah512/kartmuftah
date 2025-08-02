@@ -10,7 +10,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\Relations\HasMany; // إضافة هذا الاستيراد
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class User extends Authenticatable
@@ -31,9 +31,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'user_id', // <--- تم حذف هذا! المستخدم لا ينتمي لنقطة بيع واحدة كـ FK
         'is_active',
-           'role' 
+        'role',
+        'point_of_sale_id' 
     ];
 
     /**
@@ -44,6 +44,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_recovery_codes',
+        'two_factor_secret',
     ];
 
     /**
@@ -75,43 +77,45 @@ class User extends Authenticatable
     ];
 
     /**
-     * علاقة المستخدم بنقاط البيع التي يديرها (User is an accountant for multiple POS).
+     * علاقة المستخدم بنقاط البيع التي يديرها
      */
-    public function pointOfSale(): HasMany // تحديد نوع العلاقة صراحة
+    public function pointOfSale()
     {
-        // المستخدم (المحاسب) لديه (hasMany) العديد من نقاط البيع، حيث 'accountant_id'
-        // في جدول 'point_of_sales' هو المفتاح الأجنبي الذي يشير إلى هذا المستخدم.
-        return $this->hasMany(PointOfSale::class, 'accountant_id');
+        return $this->belongsTo(PointOfSale::class, 'point_of_sale_id');
+    }
+    /**
+     * علاقة المستخدم مع عمليات الشحن
+     */
+    public function recharges(): HasMany
+    {
+        // يجب أن يكون لديك نموذج Recharge لهذه العلاقة
+        return $this->hasMany(Recharge::class, 'accountant_id');
     }
 
     /**
-     * علاقة المستخدم (المحاسب) مع عمليات الشحن (Recharges) التي قام بها.
-     * بما أنك لا تملك موديل 'Recharge' منفصل، فقد تشير هذه العلاقة إلى 'Invoice'
-     * إذا كانت 'Recharge' هي في الأساس فواتير شحن.
+     * التحقق من وجود نقطة بيع نشطة للمستخدم
      */
-    public function recharges(): HasMany // تحديد نوع العلاقة صراحة
+    public function hasActivePOS(): bool
     {
-        // افتراضًا أن 'Recharge' غير موجود كموديل منفصل، هذه العلاقة قد تكون مضللة.
-        // إذا كانت عمليات الشحن تسجل كفواتير، فربما يجب أن تكون:
-        return $this->hasMany(Invoice::class, 'accountant_id')->where('description', 'شحن رصيد');
-        // أو إذا كان لديك موديل 'Recharge' فعليًا، فتأكد من وجوده ومساره.
+        // استخدم where بدلاً من first للحصول على النقاط النشطة
+        return $this->pointOfSale()
+                   ->where('status', 'active')
+                   ->exists();
     }
 
- public function hasActivePOS(): bool
-{
-    $pos = $this->pointOfSale->first();
-    return $pos && $pos->status == 'active';
-}
-
-
     /**
-     * علاقة المستخدم (المحاسب) مع الفواتير (Invoices) التي أنشأها/مرتبطة به.
+     * علاقة المستخدم مع الفواتير
      */
-    public function invoices(): HasMany // تحديد نوع العلاقة صراحة
+    public function invoices(): HasMany
     {
-        // المستخدم (المحاسب) لديه (hasMany) العديد من الفواتير، حيث 'accountant_id'
-        // في جدول 'invoices' هو المفتاح الأجنبي الذي يشير إلى هذا المستخدم.
         return $this->hasMany(Invoice::class, 'accountant_id');
     }
-}
 
+    /**
+     * تحديد ما إذا كان المستخدم لديه دور معين
+     */
+ public function hasRole($role): bool
+{
+    return $this->role === $role;
+}
+}
