@@ -35,6 +35,7 @@ class User extends Authenticatable
         'role',
         'point_of_sale_id' 
     ];
+protected $table = 'users'; // إذا حسابات POS مخزنة في users
 
     /**
      * الحقول التي يجب إخفاؤها عند التسلسل.
@@ -79,16 +80,21 @@ class User extends Authenticatable
     /**
      * علاقة المستخدم بنقاط البيع التي يديرها
      */
-    public function pointOfSale()
+public function pointOfSale(): BelongsTo
     {
-        return $this->belongsTo(PointOfSale::class, 'point_of_sale_id');
+        return $this->belongsTo(PointOfSale::class, 'point_of_sale_id', 'id');
+    }
+
+    public function managedPoints(): HasMany
+    {
+        return $this->hasMany(PointOfSale::class, 'accountant_id', 'id');
     }
     /**
      * علاقة المستخدم مع عمليات الشحن
      */
     public function recharges(): HasMany
     {
-        // يجب أن يكون لديك نموذج Recharge لهذه العلاقة
+        // يجب أن يكون لديك نموذج Recharge لهذه العلاقة 
         return $this->hasMany(Recharge::class, 'accountant_id');
     }
 

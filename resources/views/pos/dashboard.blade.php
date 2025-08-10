@@ -173,7 +173,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500">تاريخ الانتهاء</p>
-                         {{ $card->expiration_date ? $card->expiration_date->format('d/m/Y H:i') : 'تاريخ غير محدد' }}
+                         {{ $card->expiration_date ? $card->expiration_date->format('d/m/Y H:i') : 'غير محدد' }}
                                              </p>
                     </div>
                 </div>

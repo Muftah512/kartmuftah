@@ -44,9 +44,9 @@ class PointOfSale extends Model
     {
         return $this->hasMany(InternetCard::class);
     }
-    public function users()
+    public function users(): HasMany
     {
-        return $this->hasMany(User::class, 'point_of_sale_id');
+        return $this->hasMany(User::class, 'point_of_sale_id', 'id');
     }
 public function pos()
 {

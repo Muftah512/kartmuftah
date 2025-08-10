@@ -5,253 +5,250 @@ namespace App\Http\Controllers\Pos;
 use App\Http\Controllers\Controller;
 use App\Models\InternetCard;
 use App\Models\Package;
-use App\Services\MikroTikService;
+use App\Models\Transaction;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use App\Models\SystemSetting;
-use App\Models\PointOfSale;
-use App\Models\Transaction;
 use Exception;
+use App\Jobs\ProvisionInternetCardJob;
 
-class InternetCardController extends Controller
+class internetCardcontroller extends Controller
 {
-    protected $mikroTikService;
     protected $whatsAppService;
 
-    public function __construct(MikroTikService $mikroTikService, WhatsAppService $whatsAppService)
+    public function __construct(WhatsAppService $whatsAppService)
     {
-        $this->mikroTikService = $mikroTikService;
         $this->whatsAppService = $whatsAppService;
     }
 
-    /**
-     * يعرض نموذج توليد كرت جديد.
-     */
     public function generateForm()
     {
         $user = Auth::user();
-        $pos = $user->pointOfSale()->first();
+        abort_unless($user->hasRole('pos'), 403);
 
-        // **تم إزالة التحقق من حالة نقطة البيع**
-        // إذا كنت متأكدًا من وجود نقطة بيع مرتبطة بالمستخدم
-        if (!$pos) {
-             return redirect()->route('pos.dashboard')->with('error', 'لا توجد نقطة بيع مرتبطة بحسابك.');
-        }
+        $pos = $user->pointOfSale;
+        abort_if(is_null($pos), 403, 'حسابك غير مربوط بنقطة بيع.');
 
         $packages = Package::all();
-        $balance = $pos->balance;
+        $balance  = $pos->balance;
 
-        return view('pos.cards.generate', compact('packages', 'balance'));
+        return view('pos.cards.generate', compact('pos', 'packages', 'balance'));
     }
 
-    /**
-     * ينشئ كرتًا جديدًا.
-     */
     public function generate(Request $request)
     {
         $request->validate([
-            'package_id' => 'required|exists:packages,id',
-            'customer_phone' => 'nullable|string|max:20'
+            'package_id'     => 'required|exists:packages,id',
+            'customer_phone' => 'nullable|string|max:20',
         ]);
 
         $user = Auth::user();
-        $pos = $user->pointOfSale()->first();
-        $package = Package::find($request->package_id);
+        abort_unless($user->hasRole('pos'), 403);
 
+        $pos = $user->pointOfSale;
         if (!$pos) {
-            return redirect()->back()->with('error', 'لا توجد نقطة بيع مرتبطة بحسابك.');
+            return back()->with('error', 'لا توجد نقطة بيع مرتبطة بحسابك.');
         }
-        
+
+        $package = Package::findOrFail($request->package_id);
         if ($pos->balance < $package->price) {
-            return redirect()->back()->with('error', 'رصيدك غير كافٍ لتوليد هذه البطاقة');
+            return back()->with('error', 'رصيدك غير كافٍ لتوليد هذه البطاقة');
         }
 
         $username = $this->generateUniqueUsername();
-        
-        try {
-            $this->mikroTikService->createUser($username, $package);
-        } catch (Exception $e) {
-            return redirect()->back()->with('error', 'فشل في إنشاء المستخدم على MikroTik: ' . $e->getMessage());
-        }
 
-        $card = InternetCard::create([
-            'username' => $username,
-            'package_id' => $package->id,
-            'pos_id' => $pos->id,
-            'expiration_date' => now()->addDays($package->validity_days),
-            'status' => 'active',
-            'customer_phone' => $request->customer_phone
-        ]);
+        // نسجل البطاقة والمعاملة فورًا ثم نرسل مهمة الخلفية
+        $card = DB::transaction(function () use ($username, $package, $pos, $request, $user) {
+            $card = InternetCard::create([
+                'username'       => $username,
+                'package_id'     => $package->id,
+                'pos_id'         => $pos->id,
+                'expiration_date'=> null,            // تُحدّث بعد نجاح MikroTik
+                'status'         => 'pending',       // تظهر فورًا في الواجهة
+                'customer_phone' => $request->customer_phone,
+            ]);
 
-        $pos->balance -= $package->price;
-        $pos->save();
+            // خصم الرصيد وتسجيل المعاملة
+            $pos->balance -= $package->price;
+            $pos->save();
 
-        if ($request->customer_phone) {
-            $this->sendCardViaWhatsApp($card, $request->customer_phone);
-        }
+            Transaction::create([
+                'user_id'       => $user->id,
+                'pos_id'        => $pos->id,
+                'type'          => 'debit',
+                'amount'        => $package->price,
+                'description'   => "بيع بطاقة إنترنت: {$username} - باقة: {$package->name}",
+                'balance_after' => $pos->balance,
+            ]);
 
-        return redirect()->route('pos.cards.result', $card);
+            return $card;
+        });
+
+        // مهمة الخلفية: إنشاء/تفعيل على MikroTik + تحديث البطاقة + إرسال واتساب + في حال الفشل ترجيع الرصيد
+        ProvisionInternetCardJob::dispatch($card->id);
+
+        return redirect()->route('pos.cards.result', $card)->with('info', 'جاري تجهيز البطاقة...');
     }
 
-    /**
-     * يعرض نموذج شحن كرت.
-     */
     public function rechargeForm()
     {
         $user = Auth::user();
-        $pos = $user->pointOfSale()->first();
-        
-        // **تم إزالة التحقق من حالة نقطة البيع**
-        // إذا كنت متأكدًا من وجود نقطة بيع مرتبطة بالمستخدم
+        abort_unless($user->hasRole('pos'), 403);
+
+        $pos = $user->pointOfSale;
         if (!$pos) {
             return redirect()->route('pos.dashboard')->with('error', 'لا توجد نقطة بيع مرتبطة بحسابك.');
         }
 
         $packages = Package::all();
-        $balance = $pos->balance;
-        
-        return view('pos.cards.recharge', compact('packages', 'balance'));
+        return view('pos.cards.recharge', compact('packages', 'pos'));
     }
 
-    /**
-     * يشحن كرت إنترنت.
-     */
+    // يمكنك لاحقًا عملها كـ Job بنفس فكرة التوليد لتكون سلسة
+    // الإبقاء كما هو الآن لتقليل التغيير.
     public function recharge(Request $request)
     {
         $request->validate([
-            'username' => 'required',
-            'package_id' => 'required|exists:packages,id',
-            'customer_phone' => 'nullable|string|max:20'
-        ]);
+    'username'       => ['required', 'regex:/^\d{8,10}$/'],
+    'package_id'     => 'required|exists:packages,id',
+    'customer_phone' => 'nullable|string|max:20',
+]);
 
         $user = Auth::user();
-        $pos = $user->pointOfSale()->first();
-        $package = Package::find($request->package_id);
+        abort_unless($user->hasRole('pos'), 403);
+
+        $pos = $user->pointOfSale;
+        if (!$pos) {
+            return back()->with('error', 'لا توجد نقطة بيع مرتبطة بحسابك.');
+        }
+
+        $package = Package::findOrFail($request->package_id);
         $username = $request->username;
 
-        if (!$pos) {
-            return redirect()->back()->with('error', 'لا توجد نقطة بيع مرتبطة بحسابك.');
-        }
-
         $card = InternetCard::where('username', $username)->first();
-
         if (!$card) {
-            return redirect()->back()->with('error', 'البطاقة غير موجودة.');
+            return back()->with('error', 'البطاقة غير موجودة.');
         }
-
-        if ($card->expiration_date > now()) {
-            return redirect()->back()->with('error', 'البطاقة لم تنته صلاحيتها بعد');
+        if ($card->expiration_date && $card->expiration_date > now()) {
+            return back()->with('error', 'البطاقة لم تنته صلاحيتها بعد');
         }
-
         if ($pos->balance < $package->price) {
-            return redirect()->back()->with('error', 'رصيدك غير كافٍ لشحن هذه البطاقة');
+            return back()->with('error', 'رصيدك غير كافٍ لشحن هذه البطاقة');
         }
 
-        try {
-            $this->mikroTikService->rechargeUser($username, $package);
-        } catch (Exception $e) {
-            return redirect()->back()->with('error', 'فشل في شحن المستخدم على MikroTik: ' . $e->getMessage());
-        }
+        // سنجعلها سريعة: خصم ثم مهمة خلفية تُحاول الشحن وإن فشلت تُعيد الرصيد
+        DB::transaction(function () use ($pos, $package, $user, $card, $request) {
+            $pos->balance -= $package->price;
+            $pos->save();
 
-        $card->update([
-            'package_id' => $package->id,
-            'expiration_date' => now()->addDays($package->validity_days),
-            'status' => 'active',
-            'customer_phone' => $request->customer_phone
-        ]);
+            Transaction::create([
+                'user_id'       => $user->id,
+                'pos_id'        => $pos->id,
+                'type'          => 'debit',
+                'amount'        => $package->price,
+                'description'   => "تجديد بطاقة إنترنت: {$card->username} - باقة: {$package->name}",
+                'balance_after' => $pos->balance,
+            ]);
 
-        $pos->balance -= $package->price;
-        $pos->save();
+            // حدّث البطاقة للحالة pending أثناء التجديد
+            $card->update([
+                'package_id'     => $package->id,
+                'status'         => 'pending',
+                'customer_phone' => $request->customer_phone,
+                'expiration_date'=> null,
+            ]);
+        });
 
-        if ($request->customer_phone) {
-            $this->sendCardViaWhatsApp($card, $request->customer_phone);
-        }
+        // إعادة الاستخدام لنفس الجوب مع وضع "recharge" كعملية
+        ProvisionInternetCardJob::dispatch($card->id, true);
 
-        return redirect()->route('pos.cards.result', ['card' => $card, 'recharge' => true]);
+        return redirect()->route('pos.cards.result', $card)->with('info', 'جاري تجديد البطاقة...');
     }
 
-    /**
-     * بقية الدوال
-     */
     public function result(InternetCard $card)
     {
         return view('pos.cards.result', compact('card'));
     }
 
-    public function sendViaWhatsApp(InternetCard $card)
+    // Endpoint خفيف للـ polling
+    public function status(InternetCard $card)
     {
-        $phone = $card->customer_phone;
-        
-        if (!$phone) {
-            return back()->with('error', 'لم يتم تحديد رقم هاتف العميل');
-        }
-
-        $result = $this->sendCardViaWhatsApp($card, $phone);
-        
-        if ($result) {
-            return back()->with('success', 'تم إرسال البطاقة عبر واتساب بنجاح');
-        }
-
-        return back()->with('error', 'فشل إرسال البطاقة عبر واتساب');
+        return response()->json([
+            'status'         => $card->status,
+            'expirationDate' => optional($card->expiration_date)->format('Y-m-d'),
+            'package'        => optional($card->package)->name,
+        ]);
     }
 
-    private function generateUniqueUsername()
-    {
-        do {
-            $username = 'user_' . Str::random(8);
-            $exists = InternetCard::where('username', $username)->exists();
-        } while ($exists);
+private function generateUniqueUsername(int $min = 8, int $max = 10): string
+{
+    do {
+        $len = random_int($min, $max);
 
-        return $username;
+        // توليد أرقام فقط
+        $username = '';
+        for ($i = 0; $i < $len; $i++) {
+            $username .= (string) random_int(0, 9);
+        }
+
+        // تأكد من عدم التكرار
+        $exists = \App\Models\InternetCard::where('username', $username)->exists();
+    } while ($exists);
+
+    return $username;
+}
+
+    // نفس دوال الواتساب لديك (إن احتجتها هنا مباشرة)
+public function sendViaWhatsApp(?\App\Models\InternetCard $card = null)
+{
+    // لو ما وصل موديل بالباراميتر، جرّب card_id من الـPOST
+    if (!$card && request()->filled('card_id')) {
+        $card = \App\Models\InternetCard::find((int) request('card_id'));
     }
 
-    private function sendCardViaWhatsApp(InternetCard $card, $phone)
-    {
-        $formattedPhone = $this->formatPhoneNumber($phone);
-        $message = $this->createWhatsAppMessage($card);
-        return $this->whatsAppService->sendMessage($formattedPhone, $message);
+    // لو ما قدرنا نحدد بطاقة، لا نرمي استثناء — نرجع برسالة معلومات
+    if (!$card) {
+        return back()->with('info', 'لم يتم تحديد بطاقة لإرسال الواتساب (اختياري).');
     }
 
-    private function formatPhoneNumber($phone)
-    {
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-        
-        if (preg_match('/^7[0-9]{8}$/', $phone)) {
-            return '+967' . $phone;
-        }
-        
-        if (preg_match('/^0[0-9]{9}$/', $phone)) {
-            return '+967' . substr($phone, 1);
-        }
-        
-        if (preg_match('/^[0-9]{9}$/', $phone)) {
-            return '+9677' . $phone;
-        }
-        
-        return '+967' . $phone;
+    // لو أُدخل رقم الآن من المودال، خزّنه (اختياري)
+    if (request()->filled('customer_phone')) {
+        $clean = preg_replace('/\D/', '', request('customer_phone'));
+        $card->customer_phone = $clean;
+        $card->save();
     }
+
+    // لو ما في رقم، لا نرسل ولا نعتبرها خطأ
+    if (!$card->customer_phone) {
+        return back()->with('info', 'لم يتم إرسال واتساب لأن رقم العميل غير موجود (اختياري).');
+    }
+
+    $ok = $this->sendCardViaWhatsApp($card, $card->customer_phone);
+
+    return back()->with(
+        $ok ? 'success' : 'error',
+        $ok ? 'تم إرسال البطاقة عبر واتساب بنجاح' : 'فشل إرسال البطاقة عبر واتساب'
+    );
+}
 
     private function createWhatsAppMessage(InternetCard $card)
     {
-        $messageTemplate = SystemSetting::getValue('whatsapp_message_template', 
+        $messageTemplate = SystemSetting::getValue('whatsapp_message_template',
             "مرحباً بك في {company_name}!\n\nتفاصيل اشتراكك:\n👤 اسم المستخدم: *{username}*\n📦 الباقة: {package}\n💰 السعر: {price} ريال يمني\n⏳ مدة الصلاحية: {days} يوم\n📅 تاريخ الانتهاء: {expiry_date}\n\nشكراً لاختياركنا!\nللتواصل: {support_phone}");
 
         $replacements = [
             '{company_name}' => SystemSetting::getValue('company_name', 'شركتنا'),
-            '{username}' => $card->username,
-            '{package}' => $card->package->name,
-            '{price}' => number_format($card->package->price),
-            '{days}' => $card->package->validity_days,
-            '{expiry_date}' => $card->expiration_date->format('d/m/Y'),
-            '{support_phone}' => SystemSetting::getValue('support_phone', '773377968')
+            '{username}'     => $card->username,
+            '{package}'      => $card->package->name,
+            '{price}'        => number_format($card->package->price),
+            '{days}'         => $card->package->validity_days,
+            '{expiry_date}'  => optional($card->expiration_date)->format('d/m/Y'),
+            '{support_phone}'=> SystemSetting::getValue('support_phone', '773377968'),
         ];
 
-        return str_replace(
-            array_keys($replacements),
-            array_values($replacements),
-            $messageTemplate
-        );
+        return str_replace(array_keys($replacements), array_values($replacements), $messageTemplate);
     }
 }

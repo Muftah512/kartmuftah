@@ -167,14 +167,24 @@ Route::prefix('pos')
             Route::get('/transactions', [\App\Http\Controllers\Pos\TransactionController::class, 'index'])
          ->name('transactions');
 
+Route::get('/pos/cards/{card}/status', [\App\Http\Controllers\Pos\internetCardcontroller::class, 'status'])
+    ->name('pos.cards.status')
+    ->middleware(['auth']);
+
         Route::get('/pos/{pos}/mikrotik-packages', [App\Http\Controllers\PosController::class, 'fetchPackagesFromMikrotik'])
     ->name('pos.mikrotik.packages');
 
+Route::post(
+    '/pos/cards/send-whatsapp/{card?}',
+    [\App\Http\Controllers\Pos\internetCardcontroller::class, 'sendViaWhatsApp']
+)->name('pos.cards.send-whatsapp')->middleware(['auth']);
+
         // إعادة إرسال الكروت عبر واتساب
-        Route::post('cards/send-whatsapp/{card}', [CardController::class, 'sendViaWhatsApp'])
+        Route::post('cards/send-whatsapp/{card}', [InternetCardController::class, 'sendViaWhatsApp'])
             ->name('cards.send-whatsapp')
             ->where('card', '[0-9]+');
     });
+
 /*
 |--------------------------------------------------------------------------
 | Jetstream / Sanctum (optional)

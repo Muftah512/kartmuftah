@@ -80,7 +80,7 @@
                     <div>
                         {{-- الوصول إلى أول نقطة بيع فقط --}}
                         @php
-                            $firstPos = auth()->user()->pointOfSale->first();
+                            $firstPos = auth()->user()->pointOfSale()->first();
                         @endphp
                         @if($firstPos)
                             <p class="font-semibold">{{ $firstPos->name }}</p>

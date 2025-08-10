@@ -5,83 +5,134 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Package;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use App\Services\MikroTikService;
 
 class PackageController extends Controller
 {
     /**
-     * ÚÑÖ ŞÇÆãÉ ÇáÈÇŞÇÊ.
+     * Ù‚Ø¯ ØªÙƒÙˆÙ† null Ø¥Ø°Ø§ ÙØ´Ù„ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø±Ø§ÙˆØªØ±.
+     * @var MikroTikService|null
      */
+    protected $mikroTikService;
+
+    public function __construct()
+    {
+        try {
+            $this->mikroTikService = new MikroTikService();
+        } catch (\Exception $e) {
+            Log::error('MikroTik connection error: ' . $e->getMessage());
+            $this->mikroTikService = null;
+        }
+    }
+
     public function index()
     {
         $packages = Package::orderBy('created_at', 'desc')->get();
-        return view('admin.packages.index', compact('packages'));
+        $mikrotikProfiles = $this->getMikrotikProfiles();
+        return view('admin.packages.index', compact('packages', 'mikrotikProfiles'));
     }
 
-    /**
-     * ÅÙåÇÑ äãæĞÌ ÅäÔÇÁ ÈÇŞÉ ÌÏíÏÉ.
-     */
     public function create()
     {
-        return view('admin.packages.create');
+        $mikrotikProfiles = $this->getMikrotikProfiles();
+        return view('admin.packages.create', compact('mikrotikProfiles'));
     }
 
-    /**
-     * ÍİÙ ÇáÈÇŞÉ ÇáÌÏíÏÉ İí ÇáŞÇÚÏÉ.
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'          => 'required|string|max:255',
-            'price'         => 'required|numeric|min:0',
-            'validity_days' => 'required|integer|min:1',
-            'size_mb'       => 'required|integer|min:1',
-            'mikrotik_profile' => 'nullable|string',
+            'name'             => 'required|string|max:255',
+            'price'            => 'required|numeric|min:0',
+            'validity_days'    => 'required|integer|min:1',
+            'size_mb'          => 'required|integer|min:1',
+            // Ø¨Ø¯ÙˆÙ† Ù…Ø³Ø§ÙØ§Øª Ù…Ù†Ø¹Ù‹Ø§ Ù„Ù„Ù…Ø´Ø§ÙƒÙ„ ÙÙŠ UM
+            'mikrotik_profile' => ['required','string','regex:/^\S+$/'],
+        ], [
+            'mikrotik_profile.regex' => 'Ø§Ø³Ù… Ø¨Ø±ÙˆÙØ§ÙŠÙ„ MikroTik ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø¨Ø¯ÙˆÙ† Ù…Ø³Ø§ÙØ§Øª.'
         ]);
+
+        // ØªÙ†Ø¸ÙŠÙ Ø¨Ø³ÙŠØ·
+        $data['name'] = trim($data['name']);
+        $data['mikrotik_profile'] = trim($data['mikrotik_profile']);
+
+        // ØªØ­Ù‚Ù‚ Ø£Ù† Ø§Ù„Ø¨Ø±ÙˆÙØ§ÙŠÙ„ Ù…ÙˆØ¬ÙˆØ¯ ÙØ¹Ù„Ù‹Ø§
+        $mikrotikProfiles = $this->getMikrotikProfiles();
+        $profileExists = collect($mikrotikProfiles)->contains('name', $data['mikrotik_profile']);
+
+        if (!$profileExists) {
+            return back()->withInput()->withErrors([
+                'mikrotik_profile' => 'Ø¨Ø±ÙˆÙØ§ÙŠÙ„ MikroTik Ø§Ù„Ù…Ø­Ø¯Ø¯ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯ ÙÙŠ Ø§Ù„Ø®Ø§Ø¯Ù….'
+            ]);
+        }
 
         Package::create($data);
 
         return redirect()
             ->route('admin.packages.index')
-            ->with('success', 'Êã ÅÖÇİÉ ÇáÈÇŞÉ ÈäÌÇÍ.');
+            ->with('success', 'ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­');
     }
 
-    /**
-     * ÅÙåÇÑ äãæĞÌ ÊÚÏíá ÈÇŞÉ ãæÌæÏÉ.
-     */
     public function edit(Package $package)
     {
-        return view('admin.packages.edit', compact('package'));
+        $mikrotikProfiles = $this->getMikrotikProfiles();
+        return view('admin.packages.edit', compact('package', 'mikrotikProfiles'));
     }
 
-    /**
-     * ÊÍÏíË ÈíÇäÇÊ ÇáÈÇŞÉ.
-     */
     public function update(Request $request, Package $package)
     {
         $data = $request->validate([
-            'name'          => 'required|string|max:255',
-            'price'         => 'required|numeric|min:0',
-            'validity_days' => 'required|integer|min:1',
-            'size_mb'       => 'required|integer|min:1',
-            'mikrotik_profile' => 'nullable|string',
+            'name'             => 'required|string|max:255',
+            'price'            => 'required|numeric|min:0',
+            'validity_days'    => 'required|integer|min:1',
+            'size_mb'          => 'required|integer|min:1',
+            'mikrotik_profile' => ['required','string','regex:/^\S+$/'],
+        ], [
+            'mikrotik_profile.regex' => 'Ø§Ø³Ù… Ø¨Ø±ÙˆÙØ§ÙŠÙ„ MikroTik ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø¨Ø¯ÙˆÙ† Ù…Ø³Ø§ÙØ§Øª.'
         ]);
+
+        $data['name'] = trim($data['name']);
+        $data['mikrotik_profile'] = trim($data['mikrotik_profile']);
+
+        $mikrotikProfiles = $this->getMikrotikProfiles();
+        $profileExists = collect($mikrotikProfiles)->contains('name', $data['mikrotik_profile']);
+
+        if (!$profileExists) {
+            return back()->withInput()->withErrors([
+                'mikrotik_profile' => 'Ø¨Ø±ÙˆÙØ§ÙŠÙ„ MikroTik Ø§Ù„Ù…Ø­Ø¯Ø¯ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯ ÙÙŠ Ø§Ù„Ø®Ø§Ø¯Ù….'
+            ]);
+        }
 
         $package->update($data);
 
         return redirect()
             ->route('admin.packages.index')
-            ->with('success', 'Êã ÊÍÏíË ÇáÈÇŞÉ ÈäÌÇÍ.');
+            ->with('success', 'ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­');
     }
 
-    /**
-     * ÍĞİ ÈÇŞÉ.
-     */
     public function destroy(Package $package)
     {
         $package->delete();
 
         return redirect()
             ->route('admin.packages.index')
-            ->with('success', 'Êã ÍĞİ ÇáÈÇŞÉ.');
+            ->with('success', 'ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­');
+    }
+
+    /**
+     * Ø³Ø­Ø¨ Ø¨Ø±ÙˆÙØ§ÙŠÙ„Ø§Øª MikroTik Ù…Ø¹ Ù…Ø¹Ø§Ù„Ø¬Ø© Ø£ÙŠ Ø£Ø®Ø·Ø§Ø¡ Ø¨Ù‡Ø¯ÙˆØ¡.
+     */
+    private function getMikrotikProfiles(): array
+    {
+        if (!$this->mikroTikService) {
+            return [];
+        }
+
+        try {
+            return $this->mikroTikService->getProfiles();
+        } catch (\Exception $e) {
+            Log::error('MikroTik profiles fetch error: ' . $e->getMessage());
+            return [];
+        }
     }
 }

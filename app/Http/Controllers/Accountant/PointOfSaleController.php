@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Accountant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Accountant\StorePointOfSaleRequest;
 use App\Models\PointOfSale;
-use App\Mail\PosCredentialsMail; // تأكد من المسار الصحيح للـ Mailable الخاص بك
+use App\Mail\PosCredentialsMail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,29 +34,30 @@ class PointOfSaleController extends Controller
         $data['accountant_id'] = Auth::id();
         $data['balance'] = 0;
         
-        // إنشاء مستخدم جديد لنقطة البيع باستخدام كلمة المرور المدخلة
+        // إنشاء نقطة البيع أولاً
+        $pointOfSale = PointOfSale::create($data);
+        
+        // إنشاء المستخدم مع ربطه بنقطة البيع
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']), // استخدام كلمة المرور المدخلة
+            'password' => Hash::make($data['password']),
             'role' => 'pos',
+            'point_of_sale_id'  => $pointOfSale->id, // استخدام ID نقطة البيع
             'phone' => $data['phone'],
         ]);
         
-        // ربط المستخدم بنقطة البيع
-        $data['user_id'] = $user->id;
-        $user->assignRole('pos'); 
+        // تحديث نقطة البيع بربطها بالمستخدم
+        $pointOfSale->update(['user_id' => $user->id]);
+        $user->assignRole('pos');
         
-        // إنشاء نقطة البيع
-        $pointOfSale = PointOfSale::create($data);
-        
-        // إرسال بيانات الدخول عبر البريد الإلكتروني
+        // إرسال البريد الإلكتروني باستخدام بيانات نقطة البيع
         try {
             Mail::to($pointOfSale->email)->send(new PosCredentialsMail([
                 'title' => 'بيانات الدخول لنقطة البيع',
                 'name' => $pointOfSale->name,
                 'email' => $pointOfSale->email,
-                'password' => $data['password'], // إرسال كلمة المرور المدخلة
+                'password' => $data['password'],
                 'login_url' => route('login'),
                 'accountant_name' => Auth::user()->name,
             ]));
@@ -72,7 +73,7 @@ class PointOfSaleController extends Controller
             ->with('mail_sent', $mailSent);
     }
 
-     public function resetPassword(Request $request, PointOfSale $pointOfSale)
+    public function resetPassword(Request $request, PointOfSale $pointOfSale)
     {
         $this->authorize('update', $pointOfSale);
         
@@ -80,12 +81,11 @@ class PointOfSaleController extends Controller
             'new_password' => 'required|string|min:8|confirmed',
         ]);
         
-        // تحديث كلمة مرور المستخدم
+        // تحديث كلمة مرور المستخدم المرتبط
         $pointOfSale->user->update([
             'password' => Hash::make($request->new_password)
         ]);
         
-        // إرسال كلمة المرور الجديدة
         try {
             Mail::to($pointOfSale->email)->send(new PosCredentialsMail([
                 'title' => 'كلمة المرور الجديدة لنقطة البيع',

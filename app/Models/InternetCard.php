@@ -11,47 +11,62 @@ class InternetCard extends Model
 {
     use HasFactory;
 
+    /**
+     * الحقول المسموح تعبئتها بالجملة.
+     */
     protected $fillable = [
         'username',
         'package_id',
         'pos_id',
         'status',
-        'expires_at',
-        'customer_phone'
+        'expiration_date',  // تم التعديل لتوحيد التسمية مع العمود في قاعدة البيانات
+        'customer_phone',
     ];
 
+    /**
+     * التحويلات (Casts) للحقل.
+     */
     protected $casts = [
-        'expires_at' => 'datetime'
+        'expiration_date' => 'datetime',
     ];
 
-     public function pos(): BelongsTo
+    /**
+     * علاقة الكرت بنقطة البيع.
+     */
+    public function pos(): BelongsTo
     {
         return $this->belongsTo(PointOfSale::class, 'pos_id');
     }
+public function pointOfSale()
+{
+    return $this->belongsTo(PointOfSale::class, 'pos_id');
+}
 
-    // علاقة الكرت بالباقة
+    /**
+     * علاقة الكرت بالباقة.
+     */
     public function package()
     {
         return $this->belongsTo(Package::class);
     }
 
-    // علاقة الكرت بنقطة البيع
-    public function pointOfSale()
+    /**
+     * خاصية تحقّق انتهاء الصلاحية.
+     */
+    public function getIsExpiredAttribute(): bool
     {
-        return $this->belongsTo(PointOfSale::class, 'pos_id');
+        return $this->expiration_date->isPast();
     }
 
-    // التحقق من انتهاء الصلاحية
-    public function getIsExpiredAttribute()
+    /**
+     * تنسيق رقم العميل مع رمز الدولة.
+     */
+    public function getFormattedPhoneAttribute(): ?string
     {
-        return $this->expires_at->isPast();
-    }
+        if (!$this->customer_phone) {
+            return null;
+        }
 
-    // تنسيق رقم العميل مع +967
-    public function getFormattedPhoneAttribute()
-    {
-        if (!$this->customer_phone) return null;
-        
         return '+967' . $this->customer_phone;
     }
 }
