@@ -90,7 +90,9 @@ class internetCardcontroller extends Controller
         // مهمة الخلفية: إنشاء/تفعيل على MikroTik + تحديث البطاقة + إرسال واتساب + في حال الفشل ترجيع الرصيد
         ProvisionInternetCardJob::dispatch($card->id);
 
-        return redirect()->route('pos.cards.result', $card)->with('info', 'جاري تجهيز البطاقة...');
+return view('pos.cards.result', [
+    'card' => $card->load(['package','pos']),
+])->with('info', 'جاري تجهيز البطاقة...');
     }
 
     public function rechargeForm()
@@ -110,63 +112,58 @@ class internetCardcontroller extends Controller
     // يمكنك لاحقًا عملها كـ Job بنفس فكرة التوليد لتكون سلسة
     // الإبقاء كما هو الآن لتقليل التغيير.
     public function recharge(Request $request)
-    {
-        $request->validate([
-    'username'       => ['required', 'regex:/^\d{8,10}$/'],
-    'package_id'     => 'required|exists:packages,id',
-    'customer_phone' => 'nullable|string|max:20',
-]);
+{
+    $request->validate([
+        'username'       => ['required', 'regex:/^\d{8,10}$/'],
+        'package_id'     => 'required|exists:packages,id',
+        'customer_phone' => 'nullable|string|max:20',
+    ]);
 
-        $user = Auth::user();
-        abort_unless($user->hasRole('pos'), 403);
+    $user = Auth::user();
+    abort_unless($user->hasRole('pos'), 403);
 
-        $pos = $user->pointOfSale;
-        if (!$pos) {
-            return back()->with('error', 'لا توجد نقطة بيع مرتبطة بحسابك.');
-        }
-
-        $package = Package::findOrFail($request->package_id);
-        $username = $request->username;
-
-        $card = InternetCard::where('username', $username)->first();
-        if (!$card) {
-            return back()->with('error', 'البطاقة غير موجودة.');
-        }
-        if ($card->expiration_date && $card->expiration_date > now()) {
-            return back()->with('error', 'البطاقة لم تنته صلاحيتها بعد');
-        }
-        if ($pos->balance < $package->price) {
-            return back()->with('error', 'رصيدك غير كافٍ لشحن هذه البطاقة');
-        }
-
-        // سنجعلها سريعة: خصم ثم مهمة خلفية تُحاول الشحن وإن فشلت تُعيد الرصيد
-        DB::transaction(function () use ($pos, $package, $user, $card, $request) {
-            $pos->balance -= $package->price;
-            $pos->save();
-
-            Transaction::create([
-                'user_id'       => $user->id,
-                'pos_id'        => $pos->id,
-                'type'          => 'debit',
-                'amount'        => $package->price,
-                'description'   => "تجديد بطاقة إنترنت: {$card->username} - باقة: {$package->name}",
-                'balance_after' => $pos->balance,
-            ]);
-
-            // حدّث البطاقة للحالة pending أثناء التجديد
-            $card->update([
-                'package_id'     => $package->id,
-                'status'         => 'pending',
-                'customer_phone' => $request->customer_phone,
-                'expiration_date'=> null,
-            ]);
-        });
-
-        // إعادة الاستخدام لنفس الجوب مع وضع "recharge" كعملية
-        ProvisionInternetCardJob::dispatch($card->id, true);
-
-        return redirect()->route('pos.cards.result', $card)->with('info', 'جاري تجديد البطاقة...');
+    $pos = $user->pointOfSale;
+    if (!$pos) {
+        return back()->with('error', 'لا توجد نقطة بيع مرتبطة بحسابك.');
     }
+
+    $package = Package::findOrFail($request->package_id);
+    $username = $request->username;
+
+    $card = InternetCard::where('username', $username)->first();
+    if (!$card) {
+        return back()->with('error', 'البطاقة غير موجودة.');
+    }
+
+    if ($pos->balance < $package->price) {
+        return back()->with('error', 'رصيدك غير كافٍ لشحن هذه البطاقة');
+    }
+
+    DB::transaction(function () use ($pos, $package, $user, $card, $request) {
+        $pos->balance -= $package->price;
+        $pos->save();
+
+        Transaction::create([
+            'user_id'       => $user->id,
+            'pos_id'        => $pos->id,
+            'type'          => 'debit',
+            'amount'        => $package->price,
+            'description'   => "تجديد بطاقة إنترنت: {$card->username} - باقة: {$package->name}",
+            'balance_after' => $pos->balance,
+        ]);
+
+        $card->update([
+            'package_id'     => $package->id,
+            'status'         => 'pending',
+            'customer_phone' => $request->customer_phone,
+            'expiration_date'=> now()->addDays($package->validity_days),
+        ]);
+    });
+
+    ProvisionInternetCardJob::dispatch($card->id, true);
+
+    return redirect()->route('pos.cards.result', $card)->with('info', 'جاري تجديد البطاقة...');
+}
 
     public function result(InternetCard $card)
     {
@@ -245,7 +242,7 @@ public function sendViaWhatsApp(?\App\Models\InternetCard $card = null)
             '{package}'      => $card->package->name,
             '{price}'        => number_format($card->package->price),
             '{days}'         => $card->package->validity_days,
-            '{expiry_date}'  => optional($card->expiration_date)->format('d/m/Y'),
+            '{expiry_date}'  => optional($card->expiration_date)->format('d/m/Y'), 
             '{support_phone}'=> SystemSetting::getValue('support_phone', '773377968'),
         ];
 

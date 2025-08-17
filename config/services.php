@@ -3,7 +3,7 @@
    return [
             'mikrotik' => [
                 'host' => env('MIKROTIK_HOST', '84.252.95.215'),
-                'port' => env('MIKROTIK_PORT', 51211),
+                'port' => env('MIKROTIK_PORT', 7756),
                 'username' => env('MIKROTIK_USERNAME', 'MUFTAH'),
                 'password' => env('MIKROTIK_PASSWORD', ''),
                 'customer_name' => env('MIKROTIK_CUSTOMER_NAME', 'admin'),

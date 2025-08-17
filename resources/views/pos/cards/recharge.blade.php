@@ -69,7 +69,7 @@
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-green-700">
-                                الرصيد الحالي: <span class="font-bold">{{ number_format(auth()->user()->pointOfSale->first()->balance) }} ريال يمني</span>
+                                الرصيد الحالي: <span class="font-bold">{{ number_format($pos->balance) }} ريال يمني</span>
                             </p>
                         </div>
                     </div>

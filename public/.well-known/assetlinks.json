@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.muftah.kart",
+      "sha256_cert_fingerprints": [
+        "70:50:3C:2D:0C:45:84:94:CF:F6:5E:91:06:2E:B0:EB:A0:C5:C3:C3:8B:1B:DD:EB:0B:94:20:33:74:60:42:48"
+      ]
+    }
+  }
+]

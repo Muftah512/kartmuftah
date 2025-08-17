@@ -27,9 +27,11 @@ class InternetCard extends Model
      * التحويلات (Casts) للحقل.
      */
     protected $casts = [
+        'price'           => 'float',
         'expiration_date' => 'datetime',
-    ];
-
+        'created_at'      => 'datetime',
+        'updated_at'      => 'datetime',
+    ]; 
     /**
      * علاقة الكرت بنقطة البيع.
      */

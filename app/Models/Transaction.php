@@ -21,9 +21,13 @@ class Transaction extends Model
 
     ];
 
-    public function pointOfSale(): BelongsTo
+    public function pos(): BelongsTo
     {
         return $this->belongsTo(PointOfSale::class, 'pos_id');
+    }
+    public function pointOfSale()
+    {
+        return $this->pos();
     }
 
     public function user(): BelongsTo

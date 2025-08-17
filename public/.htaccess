@@ -4,7 +4,11 @@
     </IfModule>
 
     RewriteEngine On
-        AddDefaultCharset utf-8
+    AddDefaultCharset utf-8
+
+    # اسمح بتقديم ملفات /icons كما هي (هام لحل 404)
+    RewriteRule ^icons/ - [L,NC]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

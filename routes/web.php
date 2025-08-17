@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\PointOfSaleController as AdminPointOfSaleController;
 use App\Http\Controllers\Admin\PackageController as AdminPackageController;
 use App\Http\Controllers\Admin\ReportsController as AdminReportsController;
+use App\Http\Controllers\Admin\AccountantTopupReportController;
 use App\Http\Controllers\Accountant\DashboardController as AccountantDashboard;
 use App\Http\Controllers\Accountant\InvoiceController as AccountantInvoiceController;
 use App\Http\Controllers\Accountant\RechargeController as AccountantRechargeController;
@@ -51,6 +52,9 @@ Route::prefix('admin')
 
         // Point-of-Sale CRUD
         Route::resource('pos', AdminPointOfSaleController::class);
+
+        Route::get('accountants/topups', [AccountantTopupReportController::class, 'index'])->name('accountants.topups.index');
+        Route::get('accountants/topups/export', [AccountantTopupReportController::class, 'export'])->name('accountants.topups.export');
 
         // Packages CRUD
         Route::resource('packages', AdminPackageController::class);
@@ -155,7 +159,7 @@ Route::prefix('pos')
                 Route::get('recharge', [InternetCardController::class, 'rechargeForm'])->name('recharge');
                 Route::post('/recharge', [InternetCardController::class, 'recharge'])->name('recharge.submit');
                 Route::get('/cards', [InternetCardController::class, 'index']);
-                Route::get('result/{internetcard}', [InternetCardController::class, 'result'])
+                Route::get('result/{Internetcard}', [InternetCardController::class, 'result'])
                     ->name('result')
                     ->where('card', '[0-9]+'); // التأكد أن card هو رقم
             });
@@ -166,8 +170,10 @@ Route::prefix('pos')
         // المعاملات
             Route::get('/transactions', [\App\Http\Controllers\Pos\TransactionController::class, 'index'])
          ->name('transactions');
+Route::get('/pos/cards/{card}/result', [InternetCardController::class, 'result'])
+    ->name('pos.cards.result');
 
-Route::get('/pos/cards/{card}/status', [\App\Http\Controllers\Pos\internetCardcontroller::class, 'status'])
+Route::get('/pos/cards/{card}/status', [\App\Http\Controllers\Pos\InternetCardcontroller::class, 'status'])
     ->name('pos.cards.status')
     ->middleware(['auth']);
 
@@ -176,13 +182,25 @@ Route::get('/pos/cards/{card}/status', [\App\Http\Controllers\Pos\internetCardco
 
 Route::post(
     '/pos/cards/send-whatsapp/{card?}',
-    [\App\Http\Controllers\Pos\internetCardcontroller::class, 'sendViaWhatsApp']
+    [\App\Http\Controllers\Pos\InternetCardcontroller::class, 'sendViaWhatsApp']
 )->name('pos.cards.send-whatsapp')->middleware(['auth']);
 
         // إعادة إرسال الكروت عبر واتساب
         Route::post('cards/send-whatsapp/{card}', [InternetCardController::class, 'sendViaWhatsApp'])
             ->name('cards.send-whatsapp')
             ->where('card', '[0-9]+');
+Route::post('pos/cards/generate', [InternetCardController::class, 'store'])
+    ->name('pos.cards.generate');
+
+Route::get('pos/cards/result/{card}', [InternetCardController::class, 'result'])
+    ->name('pos.cards.result');
+
+Route::get('pos/cards/send-whatsapp/{card}', [InternetCardController::class, 'sendWhatsapp'])
+    ->name('pos.cards.send-whatsapp');
+// routes/web.php
+Route::post('pos/cards/generate', [InternetCardController::class, 'generate'])->name('pos.cards.generate');
+Route::get('pos/cards/result/{card}', [InternetCardController::class, 'result'])->name('pos.cards.result');
+
     });
 
 /*
