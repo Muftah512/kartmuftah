@@ -12,6 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+//use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
@@ -124,4 +125,15 @@ public function pointOfSale(): BelongsTo
 {
     return $this->role === $role;
 }
+    public function getProfilePhotoUrlAttribute(): string
+    {
+        $name = trim($this->name ?: 'U');
+        $base = 'https://ui-avatars.com/api/';
+        $q = http_build_query([
+            'name'      => $name,
+            'background'=> '4361ee',
+            'color'     => 'fff',
+        ]);
+        return "{$base}?{$q}";
+    }
 }

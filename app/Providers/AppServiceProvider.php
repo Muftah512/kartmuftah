@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use App\Models\Transaction;
+use App\Models\InternetCard;
+use App\Observers\TransactionObserver;
+use App\Observers\InternetCardObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('delete-pos', function ($user, $pos) {
             return $user->hasRole('admin');
         });
+    Transaction::observe(TransactionObserver::class);
+    InternetCard::observe(InternetCardObserver::class);
 
         // أيّ إنشاء أو مزامنة للأدوار والصلاحيات يجب أن يتم فقط عبر الـ Seeders
     }

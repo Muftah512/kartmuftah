@@ -51,11 +51,12 @@
           </div>
 
           <div class="relative">
-            <button class="block h-9 w-9 rounded-full overflow-hidden ring-2 ring-white/30">
+            <!-- الصورة الخاصة بالمستخدم فقط (تصل عبر الكنترولر مع تحقق الهوية) -->
+            <a href="{{ route('pos.profile.edit') }}" class="block h-9 w-9 rounded-full overflow-hidden ring-2 ring-white/30" title="الإعدادات">
               <img class="h-full w-full object-cover"
-                   src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=random"
-                   alt="صورة المستخدم">
-            </button>
+                   src="{{ route('pos.profile.avatar.show') }}?t={{ now()->timestamp }}"
+                   alt="صورة {{ auth()->user()->name }}">
+            </a>
           </div>
 
           <!-- تأكيد: تسجيل الخروج يجب أن يكون POST -->
@@ -85,12 +86,15 @@
 
     <!-- Sidebar -->
     <aside id="sidebar"
-      class="no-print fixed top-[calc(var(--nav-h))] right-0 z-50 w-64 h-[calc(100svh-var(--nav-h))]
+      class="no-print fixed top:[calc(var(--nav-h))] top-[calc(var(--nav-h))] right-0 z-50 w-64 h-[calc(100svh-var(--nav-h))]
              bg-white shadow-xl md:shadow-none md:static md:translate-x-0 md:h-auto md:w-auto
              md:rounded-lg rounded-s-xl overflow-y-auto">
       <div class="p-4 border-b">
         <div class="flex items-center gap-3">
-          <div class="bg-gray-200 border-2 border-dashed rounded-xl w-14 h-14"></div>
+          <!-- صورة خاصة في السايدبار -->
+          <img src="{{ route('pos.profile.avatar.show') }}?t={{ now()->timestamp }}"
+               alt="صورة {{ auth()->user()->name }}"
+               class="w-14 h-14 rounded-xl object-cover border" loading="lazy">
           <div>
             @php $firstPos = auth()->user()->pointOfSale()->first(); @endphp
             @if($firstPos)
@@ -105,8 +109,8 @@
 
         <div class="mt-4 bg-blue-50 p-3 rounded-lg">
           <p class="text-sm text-gray-600">الرصيد الحالي</p>
-          <p class="text-xl font-bold {{ $firstPos ? 'text-green-600' : 'text-gray-500' }}">
-            {{ $firstPos ? number_format($firstPos->balance) : '0' }} ريال
+          <p class="text-xl font-bold {{ isset($firstPos) && $firstPos ? 'text-green-600' : 'text-gray-500' }}">
+            {{ isset($firstPos) && $firstPos ? number_format($firstPos->balance) : '0' }} ريال
           </p>
         </div>
       </div>
@@ -140,12 +144,12 @@
           <li>
             <a href="{{ route('pos.transactions') }}"
                class="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600 {{ request()->routeIs('pos.transactions') ? 'bg-blue-50 text-blue-700' : '' }}">
-              <i class="fas fa-history"></i><span>سجل المعاملات</span>
+              <i class="fas a fa-history"></i><span>سجل المعاملات</span>
             </a>
           </li>
           <li>
-            <a href="#"
-               class="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600">
+            <a href="{{ route('pos.profile.edit') }}"
+               class="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600 {{ request()->routeIs('pos.profile.edit') ? 'bg-blue-50 text-blue-700' : '' }}">
               <i class="fas fa-cog"></i><span>الإعدادات</span>
             </a>
           </li>
@@ -227,11 +231,13 @@
     overlay.addEventListener('click', closeSidebar);
     window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSidebar(); });
     matchMedia('(min-width:768px)').addEventListener('change', e=>{ if(e.matches) closeSidebar(); });
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
-    });
-  }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(console.error);
+      });
+    }
+
     // لفّ أي جدول تلقائيًا لمنع قصّ البيانات على الجوال
     document.addEventListener('DOMContentLoaded', ()=>{
       document.querySelectorAll('#content-wrapper table').forEach(t=>{

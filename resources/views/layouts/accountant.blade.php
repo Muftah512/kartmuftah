@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>@yield('title','لوحة تحكم المحاسب')</title>
+  <title>@yield('title','لوحة تحكم الوكيل لشبكة المفتاح')</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -21,7 +21,7 @@
       background: radial-gradient(1200px 600px at 85% -10%, #dbeafe 0%, transparent 60%),
                   radial-gradient(900px 500px at -10% 110%, #e9d5ff 0%, transparent 60%),
                   #f6f7fb;
-      overflow-x: hidden; /* منع أي قصّ أفقي */
+      overflow-x: hidden;
     }
 
     /* iOS: منع تكبير المدخلات */
@@ -44,7 +44,6 @@
     .card-anim { transition: transform .2s ease, box-shadow .2s ease; }
     .card-anim:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.06); }
 
-    /* تقليل الحركة لمن يفضل ذلك */
     @media (prefers-reduced-motion: reduce) {
       .slide-enter, .slide-enter-active, .slide-leave-active, .card-anim { transition: none !important; }
     }
@@ -64,14 +63,33 @@
           <span class="truncate">@yield('title','لوحة تحكم المحاسب')</span>
         </a>
       </div>
+
       <div class="flex items-center gap-4">
-        <button class="relative text-gray-700 hover:text-blue-700 p-2 rounded hover:bg-gray-50" aria-label="الإشعارات">
-          <i class="fa-regular fa-bell text-xl"></i>
-          <span class="absolute -top-1 -left-1 w-2 h-2 bg-rose-500 rounded-full"></span>
-        </button>
+        {{-- زر الإشعارات (قائمة + رابط احتياطي) --}}
+        @if (View::exists('layouts.partials.notifications'))
+            @include('layouts.partials.notifications')
+        @else
+            @php $unread = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0; @endphp
+            <a href="{{ route('notifications.index') }}"
+               class="relative text-gray-700 hover:text-blue-700 p-2 rounded hover:bg-gray-50"
+               aria-label="الإشعارات">
+              <i class="fa-regular fa-bell text-xl"></i>
+              @if($unread > 0)
+                <span class="absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 text-[10px] leading-[18px] text-white bg-rose-600 rounded-full text-center">
+                  {{ $unread }}
+                </span>
+              @endif
+            </a>
+        @endif
+
         @auth
         <div class="flex items-center gap-3">
-          <img src="{{ Auth::user()->profile_photo_url }}" class="w-10 h-10 rounded-full border-2 border-blue-200 object-cover" alt="المستخدم">
+          <!-- صورة خاصة بالمحاسب فقط عبر راوت محمي -->
+          <a href="{{ route('accountant.profile.edit') }}" class="shrink-0" title="إعدادات الحساب">
+            <img src="{{ route('accountant.profile.avatar.show') }}?t={{ now()->timestamp }}"
+                 class="w-10 h-10 rounded-full border-2 border-blue-200 object-cover"
+                 alt="صورة {{ Auth::user()->name }}" loading="lazy">
+          </a>
           <div class="hidden sm:block text-right leading-tight">
             <p class="font-bold text-sm">{{ Auth::user()->name }}</p>
             <p class="text-xs text-gray-600">{{ Auth::user()->getRoleNames()->first() }}</p>
@@ -85,7 +103,7 @@
   <!-- غطاء التعتيم للموبايل -->
   <div id="backdrop" class="fixed inset-0 z-40 bg-black/40 opacity-0 pointer-events-none transition-opacity"></div>
 
-  <!-- مخطط الصفحة: على الشاشات الكبيرة Grid بعمودين [Sidebar, Content] -->
+  <!-- مخطط الصفحة -->
   <div class="pt-[var(--nav-h)]">
     <div class="max-w-7xl mx-auto lg:grid lg:grid-cols-[18rem_1fr] lg:gap-6 px-3 sm:px-5">
 
@@ -126,6 +144,14 @@
                 <i class="fa-solid fa-money-bill-wave"></i><span>عمليات الشحن</span>
               </a>
             </li>
+            <!-- جديد: الإعدادات -->
+            <li>
+              <a href="{{ route('accountant.profile.edit') }}"
+                 class="flex items-center gap-3 p-3 rounded-xl card-anim
+                        {{ request()->routeIs('accountant.profile.edit') ? 'bg-gradient-to-l from-blue-600 to-blue-500 text-white' : 'hover:bg-blue-50 text-gray-800' }}">
+                <i class="fa-solid fa-user-gear"></i><span>الإعدادات</span>
+              </a>
+            </li>
           </ul>
           <div class="my-4 border-t border-white/50"></div>
           <form method="POST" action="{{ route('logout') }}" class="pt-2">
@@ -140,10 +166,8 @@
 
       <!-- المحتوى -->
       <main id="main"
-            class="min-w-0 /* مهم لمنع انكماش المحتوى */
-                   py-4 lg:py-6
-                   /* على LG فما فوق: يترك العمود الثاني للمحتوى */">
-        <!-- بطاقات علوية مثال (اختياري): احذفها إن لا تحتاج -->
+            class="min-w-0 py-4 lg:py-6">
+        <!-- بطاقات علوية -->
         <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-4">
           @yield('stats')
         </section>
@@ -156,6 +180,9 @@
 
     </div>
   </div>
+
+  <!-- AlpineJS للقائمة المنسدلة في الإشعارات -->
+  <script src="https://unpkg.com/alpinejs" defer></script>
 
   <script>
     const sidebar  = document.getElementById('sidebar');
@@ -184,7 +211,7 @@
     // اغلاق تلقائي عند اتساع الشاشة
     matchMedia('(min-width:1024px)').addEventListener('change', e => { if (e.matches) closeSidebar(); });
 
-    // 🔒 منع قصّ الجداول/القوائم: لفّ تلقائي لكل جدول داخل overflow-x-auto
+    // لفّ تلقائي للجداول لمنع القصّ
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('#content-wrapper table').forEach(tbl => {
         if (!tbl.parentElement || !tbl.parentElement.classList.contains('tw-table-wrap')) {
@@ -193,7 +220,6 @@
           tbl.parentNode.insertBefore(wrap, tbl);
           wrap.appendChild(tbl);
         }
-        // تحسين عرض الجداول الصغيرة والكبيرة
         tbl.classList.add('min-w-full');
       });
     });

@@ -2,8 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
-use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\PointOfSaleController as AdminPointOfSaleController;
 use App\Http\Controllers\Admin\PackageController as AdminPackageController;
 use App\Http\Controllers\Admin\ReportsController as AdminReportsController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Accountant\PointOfSaleController as AccountantPointOfSa
 use App\Http\Controllers\Pos\DashboardController;
 use App\Http\Controllers\Pos\InternetCardController;
 use App\Http\Controllers\Pos\SaleController as PosSaleController;
+use App\Http\Controllers\Pos\ProfileController;
 use App\Http\Controllers\Accountant\PosReportController;
 use App\Http\Controllers\Accountant\TransactionsReportController;
 
@@ -48,7 +50,11 @@ Route::prefix('admin')
              ->name('dashboard');
 
         // Users CRUD
-        Route::resource('users', AdminUserController::class);
+         Route::resource('users', UserController::class);
+
+        // تبديل حالة التفعيل
+        Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])
+            ->name('users.toggle-status');
 
         // Point-of-Sale CRUD
         Route::resource('pos', AdminPointOfSaleController::class);
@@ -58,6 +64,13 @@ Route::prefix('admin')
 
         // Packages CRUD
         Route::resource('packages', AdminPackageController::class);
+
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+        Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
+        Route::get('/profile/avatar/show', [ProfileController::class, 'showAvatar'])->name('profile.avatar.show');
+        Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
 
         // Reports
         Route::prefix('reports')
@@ -135,6 +148,13 @@ Route::prefix('accountant')
             ->name('reports.pos');
         Route::get('reports/transactions', [TransactionsReportController::class, 'index'])
             ->name('reports.transactions');
+
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+        Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
+        Route::get('/profile/avatar/show', [ProfileController::class, 'showAvatar'])->name('profile.avatar.show');
+        Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
     });
 /*
 |--------------------------------------------------------------------------
@@ -147,6 +167,12 @@ Route::prefix('pos')
     ->group(function() {
         // لوحة التحكم
         Route::get('pos/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+        Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
+        Route::get('/profile/avatar/show', [ProfileController::class, 'showAvatar'])->name('profile.avatar.show');
+        Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
 
         
         // إدارة البطاقات
@@ -203,6 +229,16 @@ Route::get('pos/cards/result/{card}', [InternetCardController::class, 'result'])
 
     });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])
+        ->name('notifications.readAll');
+
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])
+        ->name('notifications.read');
+});
 /*
 |--------------------------------------------------------------------------
 | Jetstream / Sanctum (optional)

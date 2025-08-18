@@ -26,7 +26,7 @@
                 <i class="fas fa-users text-3xl opacity-70"></i>
             </div>
         </div>
-        
+
         <div class="bg-gradient-to-r from-green-500 to-green-700 rounded-xl shadow-lg p-6 text-white">
             <div class="flex justify-between items-center">
                 <div>
@@ -36,7 +36,7 @@
                 <i class="fas fa-user-check text-3xl opacity-70"></i>
             </div>
         </div>
-        
+
         <div class="bg-gradient-to-r from-purple-500 to-purple-700 rounded-xl shadow-lg p-6 text-white">
             <div class="flex justify-between items-center">
                 <div>
@@ -46,7 +46,7 @@
                 <i class="fas fa-crown text-3xl opacity-70"></i>
             </div>
         </div>
-        
+
         <div class="bg-gradient-to-r from-amber-500 to-amber-700 rounded-xl shadow-lg p-6 text-white">
             <div class="flex justify-between items-center">
                 <div>
@@ -63,10 +63,10 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">بحث بالاسم أو البريد</label>
-                <input type="text" id="searchInput" placeholder="ابحث هنا..." 
+                <input type="text" id="searchInput" placeholder="ابحث هنا..."
                        class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
-            
+
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">حالة المستخدم</label>
                 <select id="statusFilter" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -75,7 +75,7 @@
                     <option value="inactive">معطل فقط</option>
                 </select>
             </div>
-            
+
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">الدور</label>
                 <select id="roleFilter" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -85,7 +85,7 @@
                     @endforeach
                 </select>
             </div>
-            
+
             <div class="flex items-end">
                 <button id="resetFilters" class="bg-gray-200 hover:bg-gray-300 text-gray-800 w-full py-2 rounded-lg flex items-center justify-center">
                     <i class="fas fa-redo mr-2"></i> إعادة التعيين
@@ -129,8 +129,8 @@
                         <td class="px-6 py-4">
                             <div class="text-sm">
                                 @foreach ($user->roles as $role)
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium 
-                                        {{ $role->name == 'admin' ? 'bg-purple-100 text-purple-800' : 
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                                        {{ $role->name == 'admin' ? 'bg-purple-100 text-purple-800' :
                                            ($role->name == 'pos' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800') }}">
                                         {{ $role->name }}
                                     </span>
@@ -147,30 +147,35 @@
                           @endif
                         </td>
                         <td class="px-6 py-4">
-                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
                                 {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                 {{ $user->is_active ? 'نشط' : 'معطل' }}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center justify-end space-x-3">
-                                <button onclick="toggleStatus({{ $user->id }})" class="p-2 rounded-lg 
-                                    {{ $user->is_active ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700' }}"
-                                    title="{{ $user->is_active ? 'تعطيل المستخدم' : 'تفعيل المستخدم' }}">
-                                    <i class="fas {{ $user->is_active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
-                                </button>
-                                
-                                <a href="{{ route('admin.users.edit', $user->id) }}" 
+                                {{-- زر تفعيل/تعطيل عبر PATCH (بدون جافاسكربت) --}}
+                                <form action="{{ route('admin.users.toggle-status', $user) }}" method="POST" class="inline">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit"
+                                            class="p-2 rounded-lg {{ $user->is_active ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700' }}"
+                                            title="{{ $user->is_active ? 'تعطيل المستخدم' : 'تفعيل المستخدم' }}">
+                                        <i class="fas {{ $user->is_active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                                    </button>
+                                </form>
+
+                                <a href="{{ route('admin.users.edit', $user->id) }}"
                                    class="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700"
                                    title="تعديل المستخدم">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                
+
                                 @if (!$user->hasRole('المدير العام'))
                                 <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" 
+                                    <button type="submit"
                                             class="p-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-700"
                                             title="حذف المستخدم"
                                             onclick="return confirm('هل أنت متأكد من حذف هذا المستخدم؟')">
@@ -185,7 +190,7 @@
                 </tbody>
             </table>
         </div>
-        
+
         <!-- التصفح بين الصفحات -->
         @if($users->hasPages())
         <div class="bg-white px-6 py-4 border-t border-gray-200">
@@ -193,7 +198,7 @@
         </div>
         @endif
     </div>
-    
+
     <!-- حالة عدم وجود مستخدمين -->
     @if($users->isEmpty())
     <div class="bg-white rounded-xl shadow-lg p-12 text-center">
@@ -207,59 +212,45 @@
     @endif
 </div>
 
-<!-- نموذج تبديل الحالة المخفي -->
-<form id="toggleStatusForm" method="POST" action="">
-    @csrf
-    @method('PATCH')
-</form>
-
 <script>
-    // تبديل حالة المستخدم
-    function toggleStatus(userId) {
-        if (confirm('هل أنت متأكد من تغيير حالة المستخدم؟')) {
-            const form = document.getElementById('toggleStatusForm');
-            form.action = `/admin/users/${userId}/toggle-status`;
-            form.submit();
-        }
-    }
-
-    // البحث والتصفية
+    // البحث والتصفية (كما هو)
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
         const roleFilter = document.getElementById('roleFilter');
         const resetBtn = document.getElementById('resetFilters');
         const rows = document.querySelectorAll('#usersTable tr');
-        
+
         function filterUsers() {
             const searchTerm = searchInput.value.toLowerCase();
             const statusValue = statusFilter.value;
             const roleValue = roleFilter.value;
-            
+
             rows.forEach(row => {
-                const name = row.querySelector('.text-gray-900:first-child').textContent.toLowerCase();
-                const email = row.querySelector('.text-gray-900:nth-child(2)').textContent.toLowerCase();
-                const role = row.querySelector('.text-sm').textContent.toLowerCase();
-                const status = row.querySelector('.font-semibold').textContent;
-                
+                const nameEl  = row.querySelector('td:nth-child(1) .text-gray-900'); 
+                const emailEl = row.querySelector('td:nth-child(2) .text-sm.text-gray-900');
+                const roleEl  = row.querySelector('td:nth-child(3) .text-sm');
+                const statusEl= row.querySelector('td:nth-child(5) .font-semibold');
+
+                const name  = nameEl ? nameEl.textContent.toLowerCase() : '';
+                const email = emailEl ? emailEl.textContent.toLowerCase() : '';
+                const role  = roleEl ? roleEl.textContent.toLowerCase() : '';
+                const status = statusEl ? statusEl.textContent.trim() : '';
+
                 const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
-                const matchesStatus = statusValue === 'all' || 
-                                     (statusValue === 'active' && status === 'نشط') || 
+                const matchesStatus = statusValue === 'all' ||
+                                     (statusValue === 'active' && status === 'نشط') ||
                                      (statusValue === 'inactive' && status === 'معطل');
                 const matchesRole = roleValue === 'all' || role.includes(roleValue.toLowerCase());
-                
-                if (matchesSearch && matchesStatus && matchesRole) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+
+                row.style.display = (matchesSearch && matchesStatus && matchesRole) ? '' : 'none';
             });
         }
-        
+
         searchInput.addEventListener('input', filterUsers);
         statusFilter.addEventListener('change', filterUsers);
         roleFilter.addEventListener('change', filterUsers);
-        
+
         resetBtn.addEventListener('click', function() {
             searchInput.value = '';
             statusFilter.value = 'all';
@@ -270,42 +261,16 @@
 </script>
 
 <style>
-    .pagination {
-        display: flex;
-        justify-content: center;
-        list-style: none;
-        padding: 0;
-        margin: 20px 0 0 0;
+    .pagination { display:flex; justify-content:center; list-style:none; padding:0; margin:20px 0 0 0; }
+    .pagination li { margin:0 4px; }
+    .pagination li a, .pagination li span {
+        display:block; padding:8px 16px; border-radius:8px; text-decoration:none; color:#4B5563;
+        border:1px solid #E5E7EB; transition:all .3s;
     }
-    
-    .pagination li {
-        margin: 0 4px;
-    }
-    
-    .pagination li a, 
-    .pagination li span {
-        display: block;
-        padding: 8px 16px;
-        border-radius: 8px;
-        text-decoration: none;
-        color: #4B5563;
-        border: 1px solid #E5E7EB;
-        transition: all 0.3s;
-    }
-    
-    .pagination li a:hover {
-        background-color: #F3F4F6;
-    }
-    
+    .pagination li a:hover { background-color:#F3F4F6; }
     .pagination .active span {
-        background: linear-gradient(to right, #3B82F6, #6366F1);
-        color: white;
-        border-color: #3B82F6;
+        background:linear-gradient(to right,#3B82F6,#6366F1); color:white; border-color:#3B82F6;
     }
-    
-    .pagination .disabled span {
-        color: #9CA3AF;
-        cursor: not-allowed;
-    }
+    .pagination .disabled span { color:#9CA3AF; cursor:not-allowed; }
 </style>
 @endsection
