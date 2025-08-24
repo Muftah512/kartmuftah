@@ -6,6 +6,7 @@ use App\Models\InternetCard;
 use App\Models\Transaction;
 use App\Services\MikroTikService;
 use App\Services\WhatsAppService;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

@@ -224,7 +224,9 @@ Route::get('pos/cards/result/{card}', [InternetCardController::class, 'result'])
 Route::get('pos/cards/send-whatsapp/{card}', [InternetCardController::class, 'sendWhatsapp'])
     ->name('pos.cards.send-whatsapp');
 // routes/web.php
-Route::post('pos/cards/generate', [InternetCardController::class, 'generate'])->name('pos.cards.generate');
+Route::post('/pos/cards/generate', [InternetCardController::class, 'generate'])
+    ->name('pos.cards.generate')
+    ->middleware(['web','auth']);
 Route::get('pos/cards/result/{card}', [InternetCardController::class, 'result'])->name('pos.cards.result');
 
     });

@@ -144,16 +144,12 @@
             </button>
         </form>
 
-        <div class="mt-8 pt-6 border-t border-gray-200 text-center text-gray-600 text-sm">
-            <p class="mb-2">&copy; {{ date('Y') }} كرت المفتاح. جميع الحقوق محفوظة.</p>
-            <div class="flex justify-center space-x-4 text-xl">
-                <a href="#" class="hover:text-blue-600"><i class="fab fa-facebook"></i></a>
-                <a href="#" class="hover:text-blue-400"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="hover:text-red-600"><i class="fab fa-instagram"></i></a>
-            </div>
-            <p class="mt-2">الإصدار 1.0.0</p>
-        </div>
+  <footer class="no-print text-center py-4 mt-10">
+    <div class="max-w-7xl mx-auto px-4">
+      <p class="font-medium text-gray-400">جميع الحقوق محفوظة &copy; {{ date('Y') }} برمجة :عبدالرحمن منير</p>
+      <p class="text-sm text-gray-500 mt-1">الإصدار 3.1 Final</p>
     </div>
+  </footer>
 
     <script>
         function togglePassword() {

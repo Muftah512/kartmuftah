@@ -312,7 +312,7 @@
 
         <footer class="mt-10 py-6 text-center text-sm" style="color:var(--muted)">
           <div class="flex flex-col md:flex-row justify-between items-center">
-            <div>نظام بطاقة المفتاح &copy; {{ date('Y') }} جميع الحقوق محفوظة</div>
+            <div>برمجة :عبدالرحمن منير &copy; {{ date('Y') }} جميع الحقوق محفوظة</div>
             <div class="mt-2 md:mt-0">
               <span class="mx-2">الإصدار 2.1.0</span>
               <span class="mx-2">|</span>

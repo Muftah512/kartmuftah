@@ -181,6 +181,13 @@
     </div>
   </div>
 
+  <footer class="no-print text-center py-4 mt-10">
+    <div class="max-w-7xl mx-auto px-4">
+      <p class="font-medium text-gray-400">جميع الحقوق محفوظة &copy; {{ date('Y') }} برمجة :عبدالرحمن منير</p>
+      <p class="text-sm text-gray-500 mt-1">الإصدار 3.1 Final</p>
+    </div>
+  </footer>
+
   <!-- AlpineJS للقائمة المنسدلة في الإشعارات -->
   <script src="https://unpkg.com/alpinejs" defer></script>
 

@@ -34,7 +34,7 @@ class MikroTikService
                 'user'    => $config['username'],
                 'pass'    => $config['password'],
                 'port'    => $port,
-                'timeout' => 20,   // مهلة أصغر لتجربة سلسة
+                'timeout' => 10,   // مهلة أصغر لتجربة سلسة
                 'ssl'     => $ssl,
             ]);
         } catch (Exception $e) {
